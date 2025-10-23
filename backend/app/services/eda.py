@@ -5,7 +5,6 @@ import seaborn as sns
 import sqlite3
 from flask import current_app
 from app.config import Config
-from  app.services import PresentValue
 
 class EDA:
     def __init__(self, filename: str = None):
