@@ -2,335 +2,239 @@
 
 ## Resumen
 
-Este proyecto implementa una **Single Page Application (SPA)** con arquitectura de 3 capas:
+Este proyecto implementa una arquitectura modular de **tres capas**:
 
-1. **Frontend**: Vue 3 + Vue Router (SPA reactiva sin build)
-2. **Backend**: Flask REST API
-3. **Datos**: SQLite con 3 tablas relacionadas
+1. **Frontend (planificado)**: React + React Router (SPA con CRUD y consumo de API REST)
+2. **Backend**: Flask REST API estructurada en blueprints
+3. **Datos**: SQLite (base local embebida con tres tablas relacionadas)
 
-## Decisiones de Diseño
+---
 
-### ¿Por qué Vue Router en lugar de v-if/v-show?
-
-**Antes**: Una sola página con `v-if="currentView === 'x'"` para cambiar vistas.
-
-**Ahora**: Vue Router con rutas independientes.
-
-**Ventajas**:
-- ✅ URLs navegables (`/#/detalle`, `/#/nuevo`)
-- ✅ Historial del navegador funciona (botón atrás)
-- ✅ Componentes separados en archivos diferentes
-- ✅ Lazy loading de datos por ruta
-- ✅ Navegación programática (`this.$router.push`)
-- ✅ Separación clara de responsabilidades
-
-### ¿Por qué Jinja2 includes + {% raw %}?
-
-**Problema**: Vue usa `{{ }}` y Jinja2 también.
-
-**Solución**: 
-- Componentes Vue en archivos separados (`templates/components/`)
-- Jinja2 `{% raw %}` envuelve el código Vue
-- Templates se incluyen via `{% include %}` en las rutas
-
-**Ventaja**: 
-- Separación física de vistas
-- Sin conflicto de sintaxis
-- Fácil mantenimiento
-
-### Estructura de Datos
+## Estructura General
 
 ```
-proyectos (tabla principal)
-  └── codigo (TEXT UNIQUE)
-       ├── unidad_funcional (1:N) ── FK: codigo
-       └── item (1:N) ─────────────── FK: codigo
+backend/
+├── app/
+│   ├── routes/                → Blueprints de la API
+│   ├── models/                → Lógica de acceso a datos
+│   ├── services/              → Lógica de negocio (EDA, predicción, cálculos)
+│   ├── templates/             → Plantillas de prueba (HTML opcional)
+│   ├── static/                → Recursos estáticos
+│   └── config.py              → Configuración global
+│
+├── instance/                  → Base de datos SQLite
+├── data/                      → Archivos CSV / XLSX base
+├── notebooks/                 → Notebooks de EDA y entrenamiento
+└── run.py                     → Punto de entrada de la aplicación Flask
 ```
 
-**Relaciones**:
-- Un proyecto tiene muchas unidades funcionales
-- Un proyecto tiene muchos items de costo
-- Cascada de eliminación (ON DELETE CASCADE)
+---
+
+## Modelo de Datos
+
+```
+proyecto (tabla principal)
+  ├── codigo (TEXT UNIQUE)
+  ├── unidades_funcionales (1:N) ── FK: codigo
+  └── items_fase (1:N por fase) ── FK: codigo
+```
+
+**Relaciones**
+
+* Un proyecto puede tener múltiples unidades funcionales.
+* Cada proyecto tiene conjuntos de ítems de costo, agrupados por fase.
+* Eliminación en cascada definida a nivel de base de datos.
+
+---
 
 ## Flujo de Datos
 
-### 1. Carga Inicial
+### 1. Operación CRUD básica
 
 ```
-Usuario → http://localhost:5000
-         ↓
-    Flask renderiza index.html
-         ↓
-    Vue monta la app
-         ↓
-    Router carga vista '/' (Inicio)
-         ↓
-    GET /api/proyectos
-         ↓
-    Renderiza tabla + mapa
+React → /api/proyectos
+       ↓
+Flask → Proyecto.get_all()
+       ↓
+SQLite (lectura / escritura)
 ```
 
-### 2. Click en Proyecto (Reactivity)
+### 2. Items y Unidades Funcionales
 
 ```
-Usuario click en fila
-         ↓
-    selectProyecto(proyecto)
-         ↓
-    appState.selectedProyecto = proyecto (reactivo)
-         ↓
-    drawRoute() dibuja en Google Maps
-         ↓
-    Botón "Detalle Proyecto" aparece (v-if)
+React → /api/proyectos/<codigo>/unidades-funcionales
+React → /api/proyectos/<codigo>/items?fase=fase_i
 ```
 
-### 3. Vista Detalle con Datos Relacionados
+### 3. Predicción
 
 ```
-Usuario → /detalle
-         ↓
-    Componente Detalle monta
-         ↓
-    watch(selectedProyecto) detecta cambio
-         ↓
-    GET /api/unidades-funcionales/6935
-    GET /api/items/6935 (paralelo)
-         ↓
-    Renderiza tablas + mapa detallado
+React → /api/predict
+Flask → modelo entrenado (EDA/ML)
+       ↓
+Respuesta JSON con costo estimado
 ```
 
-## API REST Design
+---
+
+## API REST
 
 ### Endpoints por Recurso
 
-**Proyectos**:
-- `GET /api/proyectos` → Lista
-- `GET /api/proyectos/<id>` → Por ID numérico
-- `GET /api/proyectos/codigo/<codigo>` → Por código de proyecto
-- `POST /api/proyectos` → Crear
-- `PUT /api/proyectos/<id>` → Actualizar
-- `DELETE /api/proyectos/<id>` → Eliminar
+**Proyectos**
 
-**Unidades Funcionales**:
-- `GET /api/unidades-funcionales/<codigo>` → Todas las UFs de un proyecto
-- `POST /api/unidades-funcionales` → Crear UF
-- `DELETE /api/unidades-funcionales/<id>` → Eliminar UF
+* `GET /api/proyectos` → Lista todos los proyectos
+* `GET /api/proyectos/<id>` → Obtiene por ID numérico
+* `GET /api/proyectos/codigo/<codigo>` → Obtiene por código
+* `POST /api/proyectos` → Crea un proyecto
+* `PUT /api/proyectos/<id>` → Actualiza un proyecto
+* `DELETE /api/proyectos/<id>` → Elimina un proyecto
 
-**Items**:
-- `GET /api/items/<codigo>` → Todos los items de un proyecto
-- `POST /api/items` → Crear item
-- `PUT /api/items/<id>` → Actualizar costo causado
-- `DELETE /api/items/<id>` → Eliminar item
+**Unidades Funcionales**
 
-### Formato de Respuesta
+* `GET /api/proyectos/<codigo>/unidades-funcionales` → Lista UFs del proyecto
+* `POST /api/proyectos/<codigo>/unidades-funcionales` → Crea una UF
+* `DELETE /api/proyectos/<codigo>/unidades-funcionales/<id>` → Elimina una UF
+
+**Items**
+
+* `GET /api/proyectos/<codigo>/items?fase=fase_i` → Obtiene ítems por fase
+* `POST /api/proyectos/<codigo>/items?fase=fase_i` → Crea o actualiza ítems
+* `PUT /api/proyectos/<codigo>/items?fase=fase_i` → Actualiza ítems existentes
+* `DELETE /api/proyectos/<codigo>/items?fase=fase_i` → Elimina ítems de una fase
+
+**Predicción**
+
+* `POST /api/predict` → Calcula costo estimado con parámetros de entrada
+
+---
+
+## Formato de Respuesta
 
 ```json
 // GET /api/proyectos
 [
   {
     "id": 1,
+    "anio_inicio": 2010,
     "codigo": "6935",
-    "nombre": "PEDREGAL - PASTO UF4-UF5",
-    "num_ufs": 2,
-    "longitud": 37.96,
-    ...
-  }
-]
-
-// GET /api/unidades-funcionales/6935
-[
-  {
-    "id": 1,
-    "codigo": "6935",
-    "unidad_funcional": 4,
-    "longitud_km": 15.76,
-    "puentes_vehiculares_und": 4,
-    ...
-  }
-]
-
-// GET /api/items/6935
-[
-  {
-    "id": 1,
-    "codigo": "6935",
-    "item": "1 - TRANSPORTE",
-    "causado": 0
+    "costo": 1238647591,
+    "created_at": "2025-10-21 16:17:43",
+    "duracion": null,
+    "fase": "Fase II - Factibilidad",
+    "lat_fin": null,
+    "lat_inicio": null,
+    "lng_fin": null,
+    "lng_inicio": null,
+    "longitud": 206.1,
+    "nombre": "Autopista del Norte",
+    "num_ufs": 7,
+    "ubicacion": "Rural",
   },
-  ...
 ]
-```
 
-## Estado Global (Vue Provide/Inject)
+// GET /api/proyectos/6935/unidades-funcionales
+[
+  {
+    "alcance": "Construcción ",
+    "codigo": "6935",
+    "id": 1,
+    "longitud_km": 26.2,
+    "puentes_peatonales_mt2": 0,
+    "puentes_peatonales_und": 0,
+    "puentes_vehiculares_mt2": 4138,
+    "puentes_vehiculares_und": 14,
+    "tipo_terreno": "Plano",
+    "tuneles_km": 0,
+    "tuneles_und": 0,
+    "unidad_funcional": 1,
+    "zona": "Rural"
+  },
+]
 
-### App State (Root Component)
-
-```javascript
+// GET /api/proyectos/6935/items?fase=fase_ii
 {
-  proyectos: [],              // Todos los proyectos
-  selectedProyecto: null,     // Proyecto seleccionado
-  editingProyecto: null,      // Proyecto en edición
-  form: {...}                 // Formulario activo
+  "ambiental_social": 302592911,
+  "codigo": "6935",
+  "costos_presupuestos": 46610370,
+  "direccion_coordinacion": 95956539,
+  "estructuras": 5761233,
+  "geologia": 61532307,
+  "hidrologia_hidraulica": 0,
+  "id": 1,
+  "pavimento": 25858300,
+  "predial": 122586050,
+  "socioeconomica": 0,
+  "taludes": 139616991,
+  "topografia": 185525170,
+  "transporte": 0,
+  "tuneles": 252607720
 }
 ```
 
-### Compartir Estado entre Rutas
+---
 
-```javascript
-// Root app.js
-provide() {
-  return { appState: this };
-}
-
-// Componente hijo (Inicio, Detalle, etc.)
-inject: ['appState'],
-computed: {
-  proyectos() { return this.appState.proyectos; }
-}
-```
-
-**Ventaja**: Estado global sin Vuex/Pinia, perfecto para prototipos.
-
-## Google Maps Integration
-
-### Mapa Principal (Vista Inicio)
-
-```javascript
-initMap() → Crea map global
-loadProyectos() → updateMapMarkers()
-  ↓
-  Crea marcadores para cada proyecto
-  ↓
-  Click en marcador → selectProyecto()
-  ↓
-  drawRoute() usa DirectionsService
-```
-
-### Mapa Detalle (Vista Detalle)
-
-```javascript
-watch(selectedProyecto) {
-  $nextTick() → espera DOM
-    ↓
-  Crea detalleMap en #detalle-map
-    ↓
-  DirectionsRenderer dibuja ruta
-}
-```
-
-## Patrón de Componentes
-
-### Cada Vista es Autónoma
+## Arquitectura Interna (Backend)
 
 ```
-Inicio
-  - Mapa + tabla
-  - Métodos: selectProyecto, editProyecto, deleteProyecto
-
-Nuevo
-  - Formulario
-  - Métodos: saveProyecto, cancelForm
-
-Detalle
-  - Info proyecto + UFs + Items
-  - data(): unidadesFuncionales, items (local)
-  - Métodos: loadRelatedData()
-
-Historicos
-  - Stats cards
-  - computed: totalInversion, costoPromedioKm
-
-Modelo
-  - Form predicción
-  - data(): prediccion, costoPredicho (local)
+Flask App
+│
+├── Configuración (config.py)
+│    ├── Rutas absolutas (BASE_DIR, INSTANCE_DIR)
+│    ├── Claves de API y secret keys
+│
+├── Models
+│    ├── Proyecto
+│    ├── UnidadFuncional
+│    ├── Items (BaseItem + subclases por fase)
+│
+├── Services
+│    ├── EDA
+│    ├── PresentValue
+│    ├── Predicción
+│
+└── Routes
+     ├── /api/proyectos
+     ├── /api/proyectos/<codigo>/unidades-funcionales
+     └── /api/proyectos/<codigo>/items?fase=fase_i
 ```
 
-## Template Inheritance
-
-```
-base.html (Layout común)
-  ├── <head> con Vue + Vue Router CDNs
-  └── {% block content %}
-       └── index.html (SPA container)
-            ├── <header> con <router-link>
-            └── <router-view>
-                 └── Renderiza componente según ruta
-                      ├── inicio.html
-                      ├── nuevo.html
-                      ├── detalle.html
-                      ├── historicos.html
-                      └── modelo.html
-```
+---
 
 ## Próximos Pasos Arquitecturales
 
-### 1. Autenticación (Flask-Login)
+1. **Inicializar el frontend con React**
+   Configurar una SPA con React Router y Axios para consumir la API Flask.
 
-```python
-@app.route('/api/proyectos')
-@login_required
-def get_proyectos():
-    ...
-```
+2. **Autenticación (JWT o Flask-Login)**
+   Control de usuarios y permisos por proyecto.
 
-### 2. Paginación (API)
+3. **Paginación y búsqueda**
+   Ejemplo:
 
-```python
-@app.route('/api/proyectos?page=1&per_page=20')
-def get_proyectos():
-    page = request.args.get('page', 1, type=int)
-    ...
-```
+   ```
+   GET /api/proyectos?page=1&per_page=20
+   GET /api/proyectos?nombre=Past
+   ```
 
-### 3. Filtros y Búsqueda
+4. **Validación de datos (Marshmallow)**
+   Validar entrada JSON antes de escribir en base.
 
-```
-GET /api/proyectos?ubicacion=Valle&fase=Detalle
-```
+5. **Migración a PostgreSQL / SQLAlchemy**
+   Soporte para entornos productivos o multiusuario.
 
-### 4. Validación Backend
-
-```python
-from marshmallow import Schema, fields, validate
-
-class ProyectoSchema(Schema):
-    codigo = fields.Str(required=True, validate=validate.Length(min=1))
-    longitud = fields.Float(validate=validate.Range(min=0))
-    ...
-```
-
-### 5. Tests
-
-```python
-def test_get_proyectos():
-    response = client.get('/api/proyectos')
-    assert response.status_code == 200
-    assert len(response.json) > 0
-```
-
-### 6. Migration a PostgreSQL
-
-```python
-# config.py
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///database.db')
-
-# Con SQLAlchemy
-from flask_sqlalchemy import SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-db = SQLAlchemy(app)
-```
+6. **Contenerización (Docker)**
+   Backend + React build + Nginx reverse proxy.
 
 ---
 
 ## Conclusión
 
-Esta arquitectura proporciona:
-- ✅ Separación clara de responsabilidades
-- ✅ Reactividad sin complejidad
-- ✅ API REST escalable
-- ✅ Datos relacionados bien modelados
-- ✅ UI moderna y funcional
-- ✅ Sin tooling complejo (no webpack, no npm build)
+Esta arquitectura ofrece:
 
-**Es un equilibrio perfecto entre simplicidad y funcionalidad para un prototipo profesional.**
+* Separación clara entre lógica, datos y presentación
+* API REST estandarizada y jerárquica
+* Mantenimiento simple con SQLite y Flask
+* Escalabilidad futura hacia React y PostgreSQL
 
+> Diseño enfocado en la simplicidad, extensibilidad y transición gradual hacia un entorno full-stack moderno.

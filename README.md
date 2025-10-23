@@ -1,257 +1,247 @@
-
 # Sistema de Predicción de Costos en Proyectos Viales
 
-Aplicación web para gestión y predicción de costos en proyectos de infraestructura vial utilizando Machine Learning.
+Aplicación web modular para la **gestión y predicción de costos** en proyectos de infraestructura vial.
+Arquitectura basada en **Flask (backend)** y preparada para integrar una interfaz **React (frontend)**.
 
-## 🏗️ Arquitectura
+---
+## 📋 Funcionalidades 
 
-### Backend (Python/Flask)
-- **Framework**: Flask - Ligero y Pythonic
-- **Base de datos**: SQLite - Sin servidor, perfecto para prototipos
-- **API**: RESTful JSON API
-- **ML**: Scikit-learn para modelos predictivos (SVR)
+### ✅ Gestión de Proyectos 
+- Crear, leer, actualizar y eliminar proyectos viales 
+- Visualización en tabla interactiva 
+- Detalles completos de cada proyecto con datos relacionados 
 
-### Frontend (Vue 3 + Vue Router)
-- **Framework**: Vue 3 via CDN (sin build tools)
-- **Router**: Vue Router para navegación SPA
-- **Reactividad**: Sistema reactivo de Vue para UI dinámica
-- **Mapas**: Google Maps JavaScript API
-- **Estilo**: CSS puro con variables CSS modernas
+### 🗺️ Visualización Geográfica 
+- Mapa interactivo con Google Maps 
+- Rutas entre puntos de inicio y fin de proyectos 
+- Marcadores clickeables - 
 
-### Estructura del Proyecto
+**Reactividad**: Al hacer clic en una fila de la tabla, la ruta se dibuja automáticamente en el mapa 
+
+### 📊 Análisis Histórico 
+- Total de proyectos 
+- Inversión total acumulada 
+- Longitud total de vías 
+- Costo promedio por kilómetro 
+
+### 🔍 Vista Detallada 
+- Información completa del proyecto 
+- **Unidades Funcionales**: Tabla con características técnicas de cada UF 
+- **Items de Costo**: Desglose detallado de costos causados por item 
+- Mapa de la ruta del proyecto 
+- Total acumulado por items 
+
+### 🤖 Modelo Predictivo
+ - Predicción de costos basada en parámetros del proyecto 
+ - Interfaz simple para ingreso de datos 
+ - Preparado para integrar modelos SVR de scikit-learn
+
+## 🧱 Arquitectura
+
+### Backend (Flask)
+
+* API REST modular y escalable.
+* Base de datos SQLite (prototipo local).
+* Lógica de negocio en servicios (`app/services/`).
+* Análisis y predicción con Pandas y Scikit-learn.
+* Estructura limpia y desacoplada.
+
+### Frontend (React, planificado)
+
+* SPA con React Router y Axios.
+* CRUD de proyectos, unidades funcionales e ítems.
+* Integración con la API Flask.
+* Preparado para desarrollo asistido por IA.
+
+---
+
+## 📂 Estructura del Proyecto
+
 ```
 Road-Project-Prediction/
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py               # Inicialización del paquete Flask
-│   │   ├── config.py                 # Configuración general (rutas, claves, DB)
-│   │   ├── models.py                 # Modelos de acceso a datos (SQLite)
-│   │   ├── routes.py                 # Definición de endpoints / API
-│   │   │
-│   │   ├── services/                 # Lógica de negocio y utilidades
-│   │   │   ├── __init__.py
-│   │   │   ├── present_value.py      # Cálculo de valor presente
-│   │   │   ├── eda.py                # Procesos de análisis exploratorio (EDA)
-│   │   │   └── ...                   # Otros servicios o cálculos
-│   │   │
-│   │   ├── templates/                # Plantillas HTML (solo si Flask renderiza vistas)
-│   │   │   ├── base.html
-│   │   │   └── index.html
-│   │   │
-│   │   └── static/                   # Archivos estáticos para vistas Flask
-│   │       ├── css/
-│   │       ├── js/
-│   │       └── img/
+│   │   ├── routes.py              → Blueprints de la API REST
+│   │   ├── models.py              → Acceso a datos y operaciones CRUD
+│   │   ├── services/              → Lógica de negocio (EDA, predicción, cálculos)
+│   │   ├── config.py              → Configuración general
+│   │   ├── templates/             → Plantillas de prueba (HTML opcional)
+│   │   └── static/                → Archivos estáticos del backend
 │   │
-│   ├── data/                         # Archivos de datos de entrada (.csv, .xlsx)
-│   ├── instance/                     # Base de datos SQLite y configuraciones locales
-│   │   └── database.db
-│   ├── notebooks/                    # Jupyter notebooks (EDA, entrenamiento, test)
-│   │   ├── eda.ipynb
-│   │   ├── machine_learning.ipynb
-│   │   └── test.ipynb
-│   ├── tests/                        # Tests automáticos (pytest / unittests)
-│   ├── run.py                        # Script para ejecutar Flask en desarrollo
-│   ├── wsgi.py                       # Punto de entrada WSGI para producción
-│   ├── requirements.txt              # Dependencias del backend (Flask, Pandas, etc.)
-│   └── .env                          # Variables de entorno locales
+│   ├── data/                      → Archivos de datos fuente (CSV, XLSX)
+│   ├── instance/                  → Base de datos SQLite (`database.db`)
+│   ├── notebooks/                 → Análisis y entrenamiento (EDA, ML)
+│   ├── run.py                     → Ejecución de Flask en desarrollo
+│   ├── requirements.txt           → Dependencias del backend
+│   └── wsgi.py                    → Entrada para servidores WSGI (producción)
 │
-├── frontend/                         # Aplicación React (interfaz principal)
+├── frontend/                      → React app (a crear)
 │   ├── src/
 │   ├── public/
-│   ├── package.json
-│   └── build/                        # Carpeta generada por `npm run build`
+│   └── package.json
 │
-├── .venv/                             # Entorno virtual (no versionado)
-├── .gitignore                        # Archivos y carpetas ignoradas por git
-├── Makefile                          # Tareas automáticas (lint, run, etc.)
-├── scripts.bat                       # Scripts auxiliares (Windows)
-├── scripts.sh                        # Scripts auxiliares (Linux/Mac)
-├── ARCHITECTURE.md                   # Descripción técnica de la arquitectura
-└── README.md                         # Documentación del proyecto
+├── scripts.bat                    → Script para ejecutar backend/frontend en Windows
+├── scripts.sh                     → Script para ejecutar backend/frontend en Linux/Mac
+├── Makefile                       → Atajos comunes para desarrollo
+├── ARCHITECTURE.md                → Documento técnico de arquitectura
+└── README.md                      → Documentación principal
 ```
-
-### Base de Datos
-
-#### Tabla `proyectos`
-Proyecto vial principal con información básica y coordenadas geográficas.
-
-#### Tabla `unidad_funcional` (1:N con proyectos)
-Unidades funcionales de cada proyecto con características técnicas:
-- Longitud, puentes vehiculares/peatonales, túneles
-- Alcance, zona, tipo de terreno
-
-#### Tabla `item` (1:N con proyectos)
-Items de costo detallados por proyecto (diseño, geología, pavimento, etc.)
-
-## 🚀 Instalación
-
-1. **Instalar dependencias**:
-```bash
-pip install -r requirements.txt
-```
-
-2. **Configurar Google Maps API**:
-- Obtén una API key en [Google Cloud Console](https://console.cloud.google.com/)
-- Edita `config.py` y reemplaza `YOUR_API_KEY_HERE` con tu key
-
-3. **Ejecutar la aplicación**:
-```bash
-python app.py
-```
-
-4. **Abrir en navegador**:
-```
-http://localhost:5000
-```
-
-## 📋 Funcionalidades
-
-### ✅ Gestión de Proyectos
-- Crear, leer, actualizar y eliminar proyectos viales
-- Visualización en tabla interactiva
-- Detalles completos de cada proyecto con datos relacionados
-
-### 🗺️ Visualización Geográfica
-- Mapa interactivo con Google Maps
-- Rutas entre puntos de inicio y fin de proyectos
-- Marcadores clickeables
-- **Reactividad**: Al hacer clic en una fila de la tabla, la ruta se dibuja automáticamente en el mapa
-
-### 📊 Análisis Histórico
-- Total de proyectos
-- Inversión total acumulada
-- Longitud total de vías
-- Costo promedio por kilómetro
-
-### 🔍 Vista Detallada
-- Información completa del proyecto
-- **Unidades Funcionales**: Tabla con características técnicas de cada UF
-- **Items de Costo**: Desglose detallado de costos causados por item
-- Mapa de la ruta del proyecto
-- Total acumulado por items
-
-### 🤖 Modelo Predictivo
-- Predicción de costos basada en parámetros del proyecto
-- Interfaz simple para ingreso de datos
-- Preparado para integrar modelos SVR de scikit-learn
-
-## 🎯 Separación de Responsabilidades
-
-### Backend (`app.py`)
-- Endpoints REST API para 3 modelos (Proyecto, UnidadFuncional, Item)
-- Lógica de negocio
-- Integración con base de datos
-- Predicciones ML
-
-### Modelos (`models.py`)
-- Esquema de base de datos (3 tablas relacionadas)
-- Operaciones CRUD por modelo
-- Inicialización de datos con samples
-
-### Frontend (Vue 3 + Router)
-- **Router (`app.js`)**: Navegación SPA con 5 rutas
-- **Estado global**: Proyectos, selección, formularios (inject/provide)
-- **Componentes (`templates/components/`)**: Vistas modulares separadas
-- **Template base (`base.html`)**: Layout común con Jinja2
-- Integración con Google Maps
-
-### Estilos (`static/css/style.css`)
-- Diseño visual
-- Variables CSS para temas
-- Responsive design
-- Estilos para tablas de UFs e Items
-
-## 🛠️ Próximos Pasos
-
-### 1. Integración de Modelos SVR
-```python
-# En app.py, reemplaza la predicción simple por tu modelo SVR
-import joblib
-
-model = joblib.load('modelo_svr.pkl')
-
-@app.route('/api/predict', methods=['POST'])
-def predict_cost():
-    data = request.json
-    features = [[data['longitud'], data['num_ufs']]]
-    prediccion = model.predict(features)
-    return jsonify({'costo_predicho': float(prediccion[0])})
-```
-
-### 2. Más Features del Modelo
-- Agregar campos al formulario: tipo de terreno, región, complejidad
-- Extender el modelo para usar más variables predictoras
-- Crear endpoint para re-entrenar el modelo
-
-### 3. Visualizaciones Avanzadas
-- Gráficos con Chart.js o similar
-- Dashboard con métricas en tiempo real
-- Comparación de proyectos
-
-### 4. Autenticación
-```python
-# Agregar Flask-Login para usuarios
-from flask_login import LoginManager, login_required
-```
-
-### 5. Exportación de Datos
-- CSV, Excel para reportes
-- PDF para documentos oficiales
-
-### 6. Validaciones
-- Backend: Validar datos en endpoints
-- Frontend: Mensajes de error amigables
-
-## 🎨 Filosofía de Diseño
-
-- **Simplicidad**: Sin bundlers, sin TypeScript, sin complejidad innecesaria
-- **Reactividad**: Vue 3 proporciona reactividad elegante sin overhead
-- **Belleza**: UI moderna con CSS limpio
-- **Funcionalidad**: Todo funciona desde el primer momento
-- **Escalabilidad**: Estructura preparada para crecer
-
-## 🔑 API Endpoints
-
-### Proyectos
-- `GET /api/proyectos` - Listar todos los proyectos
-- `GET /api/proyectos/<id>` - Obtener un proyecto por ID
-- `GET /api/proyectos/codigo/<codigo>` - Obtener un proyecto por código
-- `POST /api/proyectos` - Crear proyecto
-- `PUT /api/proyectos/<id>` - Actualizar proyecto
-- `DELETE /api/proyectos/<id>` - Eliminar proyecto
-
-### Unidades Funcionales
-- `GET /api/unidades-funcionales/<codigo>` - Obtener UFs de un proyecto
-- `POST /api/unidades-funcionales` - Crear unidad funcional
-- `DELETE /api/unidades-funcionales/<id>` - Eliminar unidad funcional
-
-### Items de Costo
-- `GET /api/items/<codigo>` - Obtener items de un proyecto
-- `POST /api/items` - Crear item
-- `PUT /api/items/<id>` - Actualizar item
-- `DELETE /api/items/<id>` - Eliminar item
-
-### Predicción
-- `POST /api/predict` - Predecir costo
-
-## 💡 Consejos
-
-1. **Google Maps API**: Asegúrate de habilitar "Directions API" y "Maps JavaScript API"
-2. **Desarrollo**: Usa el modo debug de Flask para hot-reload
-3. **Producción**: Cambia `SECRET_KEY` y usa Gunicorn/uWSGI
-4. **Base de datos**: Para producción, migra a PostgreSQL
-
-## 📚 Tecnologías
-
-- Python 3.8+
-- Flask 3.0
-- Vue.js 3.3
-- Google Maps API
-- SQLite
-- Scikit-learn
 
 ---
 
-**Desarrollado como prototipo funcional para predicción de costos en proyectos viales**
+## ⚙️ Configuración del Entorno
 
+### 1️⃣ Crear entorno virtual
+
+#### En Windows
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+#### En Linux/Mac
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+### 2️⃣ Instalar dependencias del backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+---
+
+### 3️⃣ Crear base de datos (si no existe)
+
+```bash
+python -c "from app.models import init_db; init_db()"
+```
+
+O simplemente ejecuta Flask una vez:
+
+```bash
+flask run
+```
+
+y se generará `backend/instance/database.db` automáticamente.
+
+---
+
+### 4️⃣ Ejecutar el backend
+
+#### Opción A — Manual
+
+```bash
+cd backend
+flask run
+```
+
+#### Opción B — Script multiplataforma
+
+**Windows**
+
+```bash
+scripts.bat backend
+```
+
+**Linux/Mac**
+
+```bash
+chmod +x scripts.sh
+./scripts.sh backend
+```
+
+---
+
+### 5️⃣ Ejecutar ambos (Flask + React)
+
+Cuando tengas el frontend listo:
+
+```bash
+scripts.bat both        # Windows
+./scripts.sh both       # Linux/Mac
+```
+
+---
+
+## 🧩 Endpoints Principales
+
+| Recurso                  | Ruta                                           | Descripción                   |
+| ------------------------ | ---------------------------------------------- | ----------------------------- |
+| **Proyectos**            | `/api/proyectos`                               | CRUD de proyectos             |
+| **Unidades Funcionales** | `/api/proyectos/<codigo>/unidades-funcionales` | CRUD de unidades por proyecto |
+| **Items por Fase**       | `/api/proyectos/<codigo>/items?fase=fase_i`    | CRUD de items de costo        |
+| **Predicción**           | `/api/predict`                                 | Cálculo de costo estimado     |
+
+---
+
+## 💻 Scripts Disponibles
+
+### `scripts.bat` (Windows)
+
+```bash
+scripts.bat backend     # Ejecuta Flask
+scripts.bat frontend    # Ejecuta React (cuando exista)
+scripts.bat both        # Levanta ambos en paralelo
+```
+
+### `scripts.sh` (Linux/Mac)
+
+```bash
+./scripts.sh backend
+./scripts.sh frontend
+./scripts.sh both
+```
+
+### `Makefile`
+
+```bash
+make run-backend        # Inicia Flask
+make run-frontend       # Inicia React
+make dev                # Ejecuta ambos (backend + frontend)
+```
+
+---
+
+## 🧠 Requisitos
+
+* Python 3.10+
+* pip y virtualenv
+* Node.js (solo si se desarrollará el frontend)
+* SQLite (incluido por defecto)
+
+---
+
+## 🚀 Roadmap
+
+* [x] Refactor completo del backend Flask
+* [x] Modelo de datos con relaciones (Proyecto, UF, Items)
+* [x] Estructura RESTful jerárquica
+* [ ] Inicialización de React frontend
+* [ ] CRUD completo desde UI
+* [ ] Integración del modelo predictivo real
+* [ ] Autenticación de usuarios
+* [ ] Despliegue contenedorizado (Docker)
+
+---
+
+## 📚 Tecnologías Principales
+
+| Capa                       | Tecnologías                            |
+| -------------------------- | -------------------------------------- |
+| **Backend**                | Flask · Pandas · Scikit-learn · SQLite |
+| **Frontend (planificado)** | React · React Router · Axios           |
+| **Entorno**                | Python 3.10+ · Node 20+                |
+
+---
+
+## 🧩 Créditos
+
+Desarrollado como prototipo funcional para la **predicción de costos en proyectos viales**,
