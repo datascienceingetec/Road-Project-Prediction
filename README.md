@@ -21,25 +21,54 @@ Aplicación web para gestión y predicción de costos en proyectos de infraestru
 ### Estructura del Proyecto
 ```
 Road-Project-Prediction/
-├── app.py                      # Aplicación Flask principal
-├── models.py                   # Modelos de base de datos (Proyecto, UnidadFuncional, Item)
-├── config.py                   # Configuración
-├── requirements.txt            # Dependencias Python
-├── database.db                 # Base de datos SQLite (auto-generada)
-├── static/
-│   ├── css/
-│   │   └── style.css          # Estilos
-│   └── js/
-│       └── app.js             # Aplicación Vue.js con Router
-└── templates/
-    ├── base.html              # Plantilla base
-    ├── index.html             # Plantilla principal con router
-    └── components/            # Componentes de vista
-        ├── inicio.html        # Vista inicio (mapa + tabla)
-        ├── nuevo.html         # Vista formulario
-        ├── detalle.html       # Vista detalle con UFs e Items
-        ├── historicos.html    # Vista análisis histórico
-        └── modelo.html        # Vista predicción
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py               # Inicialización del paquete Flask
+│   │   ├── config.py                 # Configuración general (rutas, claves, DB)
+│   │   ├── models.py                 # Modelos de acceso a datos (SQLite)
+│   │   ├── routes.py                 # Definición de endpoints / API
+│   │   │
+│   │   ├── services/                 # Lógica de negocio y utilidades
+│   │   │   ├── __init__.py
+│   │   │   ├── present_value.py      # Cálculo de valor presente
+│   │   │   ├── eda.py                # Procesos de análisis exploratorio (EDA)
+│   │   │   └── ...                   # Otros servicios o cálculos
+│   │   │
+│   │   ├── templates/                # Plantillas HTML (solo si Flask renderiza vistas)
+│   │   │   ├── base.html
+│   │   │   └── index.html
+│   │   │
+│   │   └── static/                   # Archivos estáticos para vistas Flask
+│   │       ├── css/
+│   │       ├── js/
+│   │       └── img/
+│   │
+│   ├── data/                         # Archivos de datos de entrada (.csv, .xlsx)
+│   ├── instance/                     # Base de datos SQLite y configuraciones locales
+│   │   └── database.db
+│   ├── notebooks/                    # Jupyter notebooks (EDA, entrenamiento, test)
+│   │   ├── eda.ipynb
+│   │   ├── machine_learning.ipynb
+│   │   └── test.ipynb
+│   ├── tests/                        # Tests automáticos (pytest / unittests)
+│   ├── run.py                        # Script para ejecutar Flask en desarrollo
+│   ├── wsgi.py                       # Punto de entrada WSGI para producción
+│   ├── requirements.txt              # Dependencias del backend (Flask, Pandas, etc.)
+│   └── .env                          # Variables de entorno locales
+│
+├── frontend/                         # Aplicación React (interfaz principal)
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── build/                        # Carpeta generada por `npm run build`
+│
+├── .venv/                             # Entorno virtual (no versionado)
+├── .gitignore                        # Archivos y carpetas ignoradas por git
+├── Makefile                          # Tareas automáticas (lint, run, etc.)
+├── scripts.bat                       # Scripts auxiliares (Windows)
+├── scripts.sh                        # Scripts auxiliares (Linux/Mac)
+├── ARCHITECTURE.md                   # Descripción técnica de la arquitectura
+└── README.md                         # Documentación del proyecto
 ```
 
 ### Base de Datos

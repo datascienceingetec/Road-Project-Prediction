@@ -1,13 +1,22 @@
-import requests, pandas as pd, time
+from flask import current_app
+import pandas as pd
 import sqlite3
-from src.config import Config
+from app.config import Config
+
 class PresentValue:
 
     def __init__(self):
         self.incremento = None
+    
+    def _get_db_path(self):
+        try:
+            return current_app.config["DATABASE"]
+        except RuntimeError:
+            return Config.DATABASE
 
     def fetch_incremento_from_database(self) -> pd.Series:
-        with sqlite3.connect(Config.DATABASE) as conn:
+        db_path = self._get_db_path()
+        with sqlite3.connect(db_path) as conn:
             df = pd.read_sql_query("SELECT * FROM anual_increment", conn)
             # Convert DataFrame to Series - assuming first column is year and second is increment
             if df.shape[1] == 2:

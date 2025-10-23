@@ -1,13 +1,24 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sqlite3
-from src.present_value import PresentValue
-from src.config import Config
+from flask import current_app
+from app.config import Config
+from  app.services import PresentValue
 
 class EDA:
     def __init__(self, filename: str = None):
-        self.filename = "../data/BASE DE DATOS PRESUPUESTOS.xlsx"
+        if filename:
+            self.filename = filename
+        else:
+            self.filename = os.path.join(Config.DATA_DIR, "BASE DE DATOS PRESUPUESTOS.xlsx")
+    
+    def _get_db_path(self):
+        try:
+            return current_app.config["DATABASE"]
+        except RuntimeError:
+            return Config.DATABASE
     
     def get_head(self, df: pd.DataFrame) -> pd.DataFrame:
         df_head = df.iloc[ 0:15 , 0:2 ]
@@ -347,7 +358,7 @@ class EDA:
             DataFrame with project data for the specified fase
         """
         if database_path is None:
-            database_path = Config.DATABASE
+            database_path = self._get_db_path()
         
         # Validate fase parameter
         if fase not in ['I', 'II', 'III']:
