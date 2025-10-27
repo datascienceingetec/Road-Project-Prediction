@@ -17,13 +17,13 @@ GOTO :help
 :frontend
     echo 💻 Iniciando frontend (React)...
     cd frontend
-    npm run dev
+    pnpm run dev
     GOTO :end
 
 :both
     echo ⚡ Iniciando backend y frontend...
     start cmd /k "cd backend && call .venv\Scripts\activate && flask run"
-    start cmd /k "cd frontend && npm run dev"
+    start cmd /k "cd frontend && pnpm run dev"
     GOTO :end
 
 :help

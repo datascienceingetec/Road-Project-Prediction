@@ -12,13 +12,13 @@ case "$1" in
   frontend)
     echo "💻 Iniciando frontend (React)..."
     cd frontend || exit
-    npm run dev
+    pnpm run dev
     ;;
   both)
     echo "⚡ Iniciando backend y frontend..."
     # Levanta ambos en paralelo
     (cd backend && source .venv/bin/activate && flask run) &
-    (cd frontend && npm run dev) &
+    (cd frontend && pnpm run dev) &
     wait
     ;;
   *)
