@@ -1,0 +1,277 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useParams } from "next/navigation"
+import { api, type Proyecto, type UnidadFuncional, type ItemFase } from "@/lib/api"
+import { FunctionalUnitCard } from "@/components/functional-unit-card"
+import { GoogleMap } from "@/components/google-map"
+import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
+
+export default function ProjectDetailPage() {
+  const params = useParams()
+  const id = params.id as string
+  const [proyecto, setProyecto] = useState<Proyecto | null>(null)
+  const [unidades, setUnidades] = useState<UnidadFuncional[]>([])
+  const [items, setItems] = useState<ItemFase | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<"unidades" | "costos">("unidades")
+  const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null)
+  const [editingUnit, setEditingUnit] = useState<UnidadFuncional | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    loadData()
+  }, [id])
+
+  const loadData = async () => {
+    setLoading(true)
+    const proyectoData = await api.getProyecto(id)
+    setProyecto(proyectoData)
+
+    if (proyectoData) {
+      const unidadesData = await api.getUnidadesFuncionales(id)
+      setUnidades(unidadesData)
+
+      let fase = "fase_i"
+      if (proyectoData.fase.includes("II")) fase = "fase_ii"
+      else if (proyectoData.fase.includes("III")) fase = "fase_iii"
+
+      const itemsData = await api.getItems(id, fase as any)
+      setItems(itemsData)
+    }
+
+    setLoading(false)
+  }
+
+  const handleEditUnit = (unidad: UnidadFuncional) => {
+    setEditingUnit(unidad)
+    setIsModalOpen(true)
+  }
+
+  const handleSaveUnit = () => {
+    loadData()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">Cargando proyecto...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!proyecto) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Proyecto no encontrado</h2>
+          <p className="text-gray-500">El proyecto que busca no existe.</p>
+          <Link href="/proyectos">
+            <button className="mt-4 px-4 py-2 bg-primary text-white rounded-lg">Volver a Proyectos</button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+
+  const mapMarkers = unidades.map((unidad, index) => ({
+    lat: proyecto.lat_inicio! + index * 0.01,
+    lng: proyecto.lng_inicio! + index * 0.01,
+    title: `UF-${String(unidad.unidad_funcional).padStart(2, "0")}`,
+    color: (selectedUnitIndex === index ? "accent" : "primary") as "primary" | "accent",
+  }))
+
+  return (
+    <main className="flex-grow p-6 lg:p-10 space-y-6">
+      {/* Breadcrumbs & Encabezado */}
+      <section>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Link className="text-gray-500 text-sm font-medium leading-normal hover:text-primary" href="/">
+            Inicio
+          </Link>
+          <span className="text-gray-500 text-sm font-medium leading-normal">/</span>
+          <Link className="text-gray-500 text-sm font-medium leading-normal hover:text-primary" href="/proyectos">
+            Proyectos
+          </Link>
+          <span className="text-gray-500 text-sm font-medium leading-normal">/</span>
+          <span className="text-[#111418] text-sm font-medium leading-normal">{proyecto.nombre}</span>
+        </div>
+        <div className="flex flex-wrap justify-between items-start gap-4">
+          <div className="flex min-w-72 flex-col gap-2">
+            <p className="text-[#111418] text-3xl lg:text-4xl font-black leading-tight tracking-[-0.033em]">
+              {proyecto.nombre}
+            </p>
+            <p className="text-gray-500 text-base font-normal leading-normal">
+              Código: {proyecto.codigo} | {proyecto.ubicacion}
+            </p>
+          </div>
+          <div className="flex gap-3 flex-wrap justify-start pt-2">
+            <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f8f9fa] border border-[#dee2e6] text-[#111418] text-sm font-bold leading-normal hover:bg-gray-100 transition-colors">
+              <span className="truncate">Exportar Reporte</span>
+            </button>
+            <Link href={`/prediccion?proyecto=${id}`}>
+              <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal hover:bg-primary/90 transition-colors">
+                <span className="truncate">Nueva Predicción</span>
+              </button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Estadísticas */}
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Código</p>
+          <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">{proyecto.codigo}</p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Fase</p>
+          <p className="text-[#111418] tracking-light text-base font-bold leading-tight">{proyecto.fase}</p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Año Inicio</p>
+          <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">{proyecto.anio_inicio}</p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Duración (años)</p>
+          <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">{proyecto.duracion}</p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Longitud (km)</p>
+          <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
+            {proyecto.longitud.toFixed(2)}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
+          <p className="text-gray-500 text-sm font-medium leading-normal">Costo Total</p>
+          <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
+            {formatCurrency(proyecto.costo)}
+          </p>
+        </div>
+      </section>
+
+      {/* Grid Principal: Mapa + Paneles de Datos */}
+      <section className="grid grid-cols-1 xl:grid-cols-5 gap-6 h-[720px]">
+        {/* Panel Izquierdo: Mapa Interactivo */}
+        <div className="xl:col-span-3 bg-white rounded-lg border border-[#dee2e6] overflow-hidden relative">
+          {proyecto.lat_inicio && proyecto.lng_inicio ? (
+            <GoogleMap
+              center={{ lat: proyecto.lat_inicio, lng: proyecto.lng_inicio }}
+              zoom={12}
+              markers={mapMarkers}
+              highlightedMarker={selectedUnitIndex ?? undefined}
+              className="w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <p className="text-gray-500">No hay coordenadas disponibles para este proyecto</p>
+            </div>
+          )}
+        </div>
+
+        {/* Panel Derecho: Tabs de Datos */}
+        <div className="xl:col-span-2 flex flex-col bg-white rounded-lg border border-[#dee2e6] overflow-hidden">
+          {/* Navegación de Tabs */}
+          <div className="flex border-b border-[#dee2e6] px-2">
+            <button
+              onClick={() => setActiveTab("unidades")}
+              className={`flex-1 py-3 px-4 text-sm font-bold ${
+                activeTab === "unidades" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Unidades Funcionales
+            </button>
+            <button
+              onClick={() => setActiveTab("costos")}
+              className={`flex-1 py-3 px-4 text-sm font-bold ${
+                activeTab === "costos" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Desglose de Costos
+            </button>
+            {activeTab === "unidades" && (
+              <button
+                onClick={() => {
+                  setEditingUnit(null)
+                  setIsModalOpen(true)
+                }}
+                className="ml-auto p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Agregar Unidad Funcional"
+              >
+                <span className="material-symbols-outlined text-primary">add_circle</span>
+              </button>
+            )}
+          </div>
+
+          {/* Contenido de Tabs */}
+          <div className="flex-grow overflow-y-auto">
+            {activeTab === "unidades" && (
+              <div className="divide-y divide-[#dee2e6] space-y-4 p-4">
+                {unidades.map((unidad, index) => (
+                  <FunctionalUnitCard
+                    key={unidad.id}
+                    unidad={unidad}
+                    isSelected={selectedUnitIndex === index}
+                    onClick={() => setSelectedUnitIndex(index === selectedUnitIndex ? null : index)}
+                    onEdit={() => handleEditUnit(unidad)}
+                  />
+                ))}
+                {unidades.length === 0 && (
+                  <div className="p-8 text-center text-gray-500">
+                    <p>No hay unidades funcionales registradas</p>
+                    <button
+                      onClick={() => {
+                        setEditingUnit(null)
+                        setIsModalOpen(true)
+                      }}
+                      className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      Agregar Unidad Funcional
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "costos" && items && (
+              <div className="p-4 space-y-3">
+                {Object.entries(items)
+                  .filter(([key]) => !["proyecto_id", "fase", "id", "codigo"].includes(key))
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700 capitalize">{key.replace(/_/g, " ")}</span>
+                      <span className="text-sm font-bold text-gray-900">{formatCurrency(value as number)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <EditFunctionalUnitModal
+        unidad={editingUnit}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingUnit(null)
+        }}
+        onSave={handleSaveUnit}
+        codigoProyecto={id}
+      />
+    </main>
+  )
+}
