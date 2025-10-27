@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from .config import Config
+from .routes import register_blueprints
 
 def create_app():
     app = Flask(
@@ -9,11 +10,11 @@ def create_app():
         template_folder="templates",
         static_folder="static"
     )
-    CORS(app)
+    # CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     app.config.from_object(Config)
 
-    from .routes import api
-    app.register_blueprint(api, url_prefix="/api")
+    register_blueprints(app)
 
     return app
