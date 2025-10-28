@@ -46,11 +46,11 @@ Arquitectura basada en **Flask (backend)** y preparada para integrar una interfa
 * Análisis y predicción con Pandas y Scikit-learn.
 * Estructura limpia y desacoplada.
 
-### Frontend (React, planificado)
+### Frontend (Next.js)
 
-* SPA con React Router y Axios.
-* CRUD de proyectos, unidades funcionales e ítems.
-* Integración con la API Flask.
+* Aplicación de una sola página (SPA) construida con Next.js.
+* Implementa operaciones CRUD para proyectos, unidades funcionales e ítems de costo.
+* Integración robusta con la API de Flask.
 * Preparado para desarrollo asistido por IA.
 
 ---
@@ -61,29 +61,37 @@ Arquitectura basada en **Flask (backend)** y preparada para integrar una interfa
 Road-Project-Prediction/
 ├── backend/
 │   ├── app/
-│   │   ├── routes.py              → Blueprints de la API REST
 │   │   ├── models.py              → Acceso a datos y operaciones CRUD
+│   │   ├── routes/                → Rutas de la API REST
 │   │   ├── services/              → Lógica de negocio (EDA, predicción, cálculos)
-│   │   ├── config.py              → Configuración general
-│   │   ├── templates/             → Plantillas de prueba (HTML opcional)
-│   │   └── static/                → Archivos estáticos del backend
+│   │   └── config.py              → Configuración general
 │   │
 │   ├── data/                      → Archivos de datos fuente (CSV, XLSX)
+│   ├── docs/                      → Documentación de la API REST
 │   ├── instance/                  → Base de datos SQLite (`database.db`)
 │   ├── notebooks/                 → Análisis y entrenamiento (EDA, ML)
 │   ├── run.py                     → Ejecución de Flask en desarrollo
 │   ├── requirements.txt           → Dependencias del backend
 │   └── wsgi.py                    → Entrada para servidores WSGI (producción)
 │
-├── frontend/                      → React app (a crear)
-│   ├── src/
-│   ├── public/
-│   └── package.json
+├── frontend/                      → Aplicación React (Next.js)
+│   ├── app/                       → Rutas y páginas de Next.js
+│   ├── components/                → Componentes reutilizables de la UI
+│   ├── hooks/                     → Hooks personalizados de React
+│   ├── lib/                       → Utilidades y funciones de ayuda
+│   ├── public/                    → Archivos estáticos (imágenes, fuentes)
+│   ├── styles/                    → Estilos globales y configuración de Tailwind CSS
+│   ├── components.json            → Configuración de componentes (ej. Shadcn UI)
+│   ├── next.config.mjs            → Configuración de Next.js
+│   ├── package.json               → Metadatos del proyecto y dependencias
+│   ├── pnpm-lock.yaml             → Archivo de bloqueo de dependencias de pnpm
+│   ├── postcss.config.mjs         → Configuración de PostCSS
+│   └── tsconfig.json              → Configuración de TypeScript
 │
+├── docs/                          → Documentación general (Arquitectura, changelog, etc.)
 ├── scripts.bat                    → Script para ejecutar backend/frontend en Windows
 ├── scripts.sh                     → Script para ejecutar backend/frontend en Linux/Mac
 ├── Makefile                       → Atajos comunes para desarrollo
-├── ARCHITECTURE.md                → Documento técnico de arquitectura
 └── README.md                      → Documentación principal
 ```
 
@@ -173,12 +181,12 @@ scripts.bat both        # Windows
 
 ## 🧩 Endpoints Principales
 
-| Recurso                  | Ruta                                           | Descripción                   |
-| ------------------------ | ---------------------------------------------- | ----------------------------- |
-| **Proyectos**            | `/api/proyectos`                               | CRUD de proyectos             |
-| **Unidades Funcionales** | `/api/proyectos/<codigo>/unidades-funcionales` | CRUD de unidades por proyecto |
-| **Items por Fase**       | `/api/proyectos/<codigo>/items?fase=fase_i`    | CRUD de items de costo        |
-| **Predicción**           | `/api/predict`                                 | Cálculo de costo estimado     |
+| Recurso                  | Ruta                                              | Descripción                   |
+| ------------------------ | ------------------------------------------------- | ----------------------------- |
+| **Proyectos**            | `/api/v1/proyectos`                               | CRUD de proyectos             |
+| **Unidades Funcionales** | `/api/v1/proyectos/<codigo>/unidades-funcionales` | CRUD de unidades por proyecto |
+| **Items por Fase**       | `/api/v1/proyectos/<codigo>/items?fase=fase_i`    | CRUD de items de costo        |
+| **Predicción**           | `/api/predict`                                    | Cálculo de costo estimado     |
 
 ---
 
@@ -224,7 +232,7 @@ make dev                # Ejecuta ambos (backend + frontend)
 * [x] Refactor completo del backend Flask
 * [x] Modelo de datos con relaciones (Proyecto, UF, Items)
 * [x] Estructura RESTful jerárquica
-* [ ] Inicialización de React frontend
+* [x] Inicialización de React frontend
 * [ ] CRUD completo desde UI
 * [ ] Integración del modelo predictivo real
 * [ ] Autenticación de usuarios
@@ -237,7 +245,7 @@ make dev                # Ejecuta ambos (backend + frontend)
 | Capa                       | Tecnologías                            |
 | -------------------------- | -------------------------------------- |
 | **Backend**                | Flask · Pandas · Scikit-learn · SQLite |
-| **Frontend (planificado)** | React · React Router · Axios           |
+| **Frontend**               | Next.js · React · Tailwind CSS         |
 | **Entorno**                | Python 3.10+ · Node 20+                |
 
 ---
