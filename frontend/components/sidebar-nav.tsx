@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useSettings } from "@/lib/settings-context"
+import Logo from "@/components/logo"
 
 const navItems = [
   {
@@ -43,23 +44,7 @@ export function SidebarNav() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             {!sidebarCollapsed && (
-              <div className="flex items-center gap-3 px-2">
-                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-white p-1.5">
-                  <svg
-                    className="text-primary"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M12 2L1 9.07V22h22V9.07L12 2zm0 3.34L18.93 10H5.07L12 5.34zM4 12h16v8H4v-8z" />
-                    <path d="M10 14h4v4h-4z" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <h1 className="text-white text-base font-bold leading-normal">Predictor de Costos</h1>
-                  <p className="text-gray-400 text-sm font-normal leading-normal">INGETEC</p>
-                </div>
-              </div>
+                <Logo variant="full"/>
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
