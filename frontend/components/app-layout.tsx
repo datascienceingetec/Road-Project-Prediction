@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useSettings } from "@/lib/settings-context"
-import { SidebarNav } from "./sidebar-nav"
-import { TopNav } from "./top-nav"
+import { useSettings } from "@/contexts/settings-context"
+import { SidebarNav } from "@/navigation/components/sidebar-nav"
+import { TopNav } from "@/navigation/components/top-nav"
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { useSidebar } = useSettings()

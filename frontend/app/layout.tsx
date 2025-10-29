@@ -2,8 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Manrope } from "next/font/google"
 import "./globals.css"
-import { SettingsProvider } from "@/lib/settings-context"
+import { SettingsProvider } from "@/contexts/settings-context"
 import { AppLayout } from "@/layouts"
+import { GoogleMapsProvider } from "@/contexts/map-context"
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -28,9 +29,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
       </head>
       <body className={manrope.className}>
-        <SettingsProvider>
-          <AppLayout>{children}</AppLayout>
-        </SettingsProvider>
+        <GoogleMapsProvider>
+          <SettingsProvider>
+            <AppLayout>{children}</AppLayout>
+          </SettingsProvider>
+        </GoogleMapsProvider>
       </body>
     </html>
   )

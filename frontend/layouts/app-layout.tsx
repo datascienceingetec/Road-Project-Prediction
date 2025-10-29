@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useSettings } from "@/lib/settings-context"
+import { useSettings } from "@/contexts/settings-context"
 import { SidebarNav, TopNav } from "@/navigation/components"
 
 /**

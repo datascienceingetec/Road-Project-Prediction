@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
+import { GoogleMapsContext } from "@/contexts/map-context"
 
 declare global {
   interface Window {
@@ -25,52 +26,40 @@ interface GoogleMapProps {
 }
 
 export function GoogleMap({ center, zoom = 12, markers = [], polyline, highlightedMarker, className }: GoogleMapProps) {
+  const { isLoaded } = useContext(GoogleMapsContext)
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
-  const [mapMarkers, setMapMarkers] = useState<any[]>([])
-  const [mapPolyline, setMapPolyline] = useState<any>(null)
+  const mapMarkers = useRef<any[]>([])
+  const mapPolyline = useRef<any>(null)
 
   // Inicializar el mapa
   useEffect(() => {
-    if (!mapRef.current || map) return
+    if (!mapRef.current || map || !isLoaded) return
 
-    const initMap = () => {
-      const newMap = new window.google.maps.Map(mapRef.current!, {
-        center,
-        zoom,
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
-      })
-      setMap(newMap)
-    }
-
-    // Cargar Google Maps API si no está cargada
-    if (typeof window.google === "undefined" || !window.google.maps) {
-      const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-      script.async = true
-      script.defer = true
-      script.onload = initMap
-      document.head.appendChild(script)
-    } else {
-      initMap()
-    }
-  }, [center, zoom])
+    const newMap = new window.google.maps.Map(mapRef.current, {
+      center,
+      zoom,
+      styles: [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+      ],
+    })
+    setMap(newMap)
+  }, [center, zoom, isLoaded])
 
   // Actualizar marcadores
   useEffect(() => {
-    if (!map || typeof window.google === "undefined") return
+    if (!map || !isLoaded) return
 
     // Limpiar marcadores existentes
-    mapMarkers.forEach((marker) => marker.setMap(null))
+    mapMarkers.current.forEach((marker) => marker.setMap(null))
+    mapMarkers.current = []
 
     // Crear nuevos marcadores
-    const newMarkers = markers.map((markerData, index) => {
+    markers.forEach((markerData, index) => {
       const marker = new window.google.maps.Marker({
         position: { lat: markerData.lat, lng: markerData.lng },
         map,
@@ -85,45 +74,48 @@ export function GoogleMap({ center, zoom = 12, markers = [], polyline, highlight
         },
         animation: highlightedMarker === index ? window.google.maps.Animation.BOUNCE : undefined,
       })
-
-      return marker
+      mapMarkers.current.push(marker)
     })
 
-    setMapMarkers(newMarkers)
-
     // Ajustar bounds si hay marcadores
-    if (newMarkers.length > 0) {
+    if (markers.length > 0) {
       const bounds = new window.google.maps.LatLngBounds()
-      newMarkers.forEach((marker) => {
-        const position = marker.getPosition()
-        if (position) bounds.extend(position)
+      markers.forEach((marker) => {
+        bounds.extend({ lat: marker.lat, lng: marker.lng })
       })
       map.fitBounds(bounds)
     }
-  }, [map, markers, highlightedMarker])
+  }, [map, markers, highlightedMarker, isLoaded])
 
   // Actualizar polyline
   useEffect(() => {
-    if (!map || typeof window.google === "undefined") return
+    if (!map || !isLoaded || !polyline || polyline.length === 0) {
+      if (mapPolyline.current) {
+        mapPolyline.current.setMap(null)
+        mapPolyline.current = null
+      }
+      return
+    }
 
     // Limpiar polyline existente
-    if (mapPolyline) {
-      mapPolyline.setMap(null)
+    if (mapPolyline.current) {
+      mapPolyline.current.setMap(null)
     }
 
-    // Crear nueva polyline si hay datos
-    if (polyline && polyline.length > 0) {
-      const newPolyline = new window.google.maps.Polyline({
-        path: polyline,
-        geodesic: true,
-        strokeColor: "#1D428A",
-        strokeOpacity: 0.8,
-        strokeWeight: 4,
-        map,
-      })
-      setMapPolyline(newPolyline)
-    }
-  }, [map, polyline])
+    // Crear nueva polyline
+    mapPolyline.current = new window.google.maps.Polyline({
+      path: polyline,
+      geodesic: true,
+      strokeColor: "#1D428A",
+      strokeOpacity: 0.8,
+      strokeWeight: 4,
+      map,
+    })
+  }, [map, polyline, isLoaded])
+
+  if (!isLoaded) {
+    return <div className={className || "w-full h-full bg-gray-100 flex items-center justify-center"}>Cargando mapa...</div>
+  }
 
   return <div ref={mapRef} className={className || "w-full h-full"} />
 }

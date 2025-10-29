@@ -36,7 +36,7 @@ export const mainNavItems: NavItem[] = [
 export const secondaryNavItems: NavItem[] = [
   {
     href: '/configuracion',
-    label: 'Settings',
+    label: 'Configuración',
     icon: 'settings',
     description: 'Configuración de la aplicación'
   }

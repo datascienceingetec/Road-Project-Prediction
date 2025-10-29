@@ -1,6 +1,6 @@
 "use client"
 
-import { useSettings } from "@/lib/settings-context"
+import { useSettings } from "@/contexts/settings-context"
 
 export default function ConfiguracionPage() {
   const { useSidebar, toggleNavigation } = useSettings()
