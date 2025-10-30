@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 """
-Script de migración para transformar el esquema antiguo al nuevo esquema normalizado.
+Seed database from old schema.
+
+Popula la base de datos actual (nuevo esquema con Alembic) 
+con datos de una base de datos antigua (esquema legacy).
+
+Uso:
+    python seed_from_old_schema.py <ruta_db_antigua>
+    
+Ejemplo:
+    python seed_from_old_schema.py instance/database_backup_20251030_121730.db
 """
 
 import os
 import sys
 import sqlite3
-import shutil
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -36,17 +44,6 @@ ITEM_FASE_MAPPING = {
         'Evaluación Socioeconómica', 'Otros - Manejo de Redes', 'Dirección y Coordinación'
     ]
 }
-
-def backup_database():
-    """Crear backup de la base de datos existente"""
-    db_path = Config.DATABASE
-    if os.path.exists(db_path):
-        backup_path = db_path.replace('.db', f'_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db')
-        shutil.copy2(db_path, backup_path)
-        print(f"✓ Base de datos respaldada en: {backup_path}")
-        return True
-    return False
-
 
 def initialize_catalog_data(app):
     """Inicializar datos de catálogo (Fases, ItemTipo, FaseItemRequerido)"""
@@ -474,62 +471,74 @@ def migrate_anual_increment(old_data, app):
 
 def main():
     print("="*60)
-    print("SCRIPT DE MIGRACIÓN DE BASE DE DATOS")
-    print("Esquema Antiguo → Esquema Normalizado")
+    print("SEED FROM OLD SCHEMA")
+    print("Poblar BD actual con datos de esquema antiguo")
     print("="*60)
     
-    # Paso 1: Backup
-    print("\n📦 Paso 1: Respaldando base de datos...")
-    has_old_db = backup_database()
+    # Verificar argumentos
+    if len(sys.argv) < 2:
+        print("\n❌ Error: Debes especificar la ruta de la base de datos antigua")
+        print("\nUso:")
+        print("  python seed_from_old_schema.py <ruta_db_antigua>")
+        print("\nEjemplo:")
+        print("  python seed_from_old_schema.py instance/database_backup_20251030_121730.db")
+        print("\n💡 Tip: Busca archivos database_backup_*.db en la carpeta instance/")
+        sys.exit(1)
     
-    # Obtener ruta del backup para leer datos antiguos
-    backup_path = None
-    if has_old_db:
-        db_files = [f for f in os.listdir(Config.INSTANCE_DIR) if f.startswith('database_backup_') and f.endswith('.db')]
-        if db_files:
-            # Usar el backup más reciente
-            db_files.sort(reverse=True)
-            backup_path = os.path.join(Config.INSTANCE_DIR, db_files[0])
+    old_db_path = sys.argv[1]
     
-    # Paso 2: Leer datos antiguos ANTES de eliminar las tablas
-    old_data = read_old_data(backup_path) if backup_path else None
+    # Verificar que el archivo existe
+    if not os.path.exists(old_db_path):
+        print(f"\n❌ Error: No se encontró el archivo: {old_db_path}")
+        sys.exit(1)
     
-    # Paso 3: Crear app y nuevo esquema
-    print("\n🏗️  Paso 3: Creando nuevo esquema...")
+    print(f"\n📂 Base de datos antigua: {old_db_path}")
+    
+    # Leer datos antiguos
+    old_data = read_old_data(old_db_path)
+    
+    if not old_data:
+        print("\n❌ No se pudieron leer los datos")
+        sys.exit(1)
+    
+    # Verificar que las tablas de Alembic existen
+    print("\n🔍 Verificando esquema de Alembic...")
     app = create_app()
     
     with app.app_context():
-        print("  Eliminando tablas antiguas...")
-        db.drop_all()
-        print("  Creando nuevas tablas...")
-        db.create_all()
-        print("  ✓ Nuevo esquema creado")
+        # Verificar que las tablas existen
+        inspector = db.inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        required_tables = ['fases', 'proyectos', 'unidad_funcional', 'item_tipo', 
+                          'fase_item_requerido', 'costo_item', 'anual_increment', 'alembic_version']
+        
+        missing_tables = [t for t in required_tables if t not in tables]
+        if missing_tables:
+            print(f"\n❌ ERROR: Faltan tablas: {', '.join(missing_tables)}")
+            print("\nPrimero ejecuta: python manage_migrations.py upgrade")
+            sys.exit(1)
+        
+        print("✓ Esquema verificado")
+        
+        # Verificar si ya hay datos
+        if Proyecto.query.count() > 0:
+            print("\n⚠️  ADVERTENCIA: La base de datos ya contiene proyectos")
+            response = input("¿Deseas continuar? Esto puede crear duplicados (s/N): ")
+            if response.lower() != 's':
+                print("\nOperación cancelada")
+                sys.exit(0)
     
-    # Paso 4: Inicializar datos de catálogo
-    print("\n📋 Paso 4: Inicializando datos de catálogo...")
+    # Inicializar catálogos
+    print("\n📋 Inicializando catálogos...")
     fase_ids, item_tipos = initialize_catalog_data(app)
     
-    # Paso 5: Migrar datos si existen
-    if old_data and any(old_data.values()):
-        print("\n🔄 Paso 5: Migrando datos existentes...")
-        proyecto_map = migrate_proyectos(old_data, fase_ids, app)
-        migrate_unidades_funcionales(old_data, proyecto_map, app)
-        migrate_items_to_costos(old_data, proyecto_map, item_tipos, app)
-        migrate_anual_increment(old_data, app)
-    else:
-        print("\n⚠ Paso 5: No hay datos antiguos para migrar")
-    
-    # Paso 6: Eliminar tablas legacy
-    print("\n🗑️  Paso 6: Eliminando tablas legacy...")
-    with app.app_context():
-        try:
-            db.session.execute(db.text("DROP TABLE IF EXISTS item_fase_i"))
-            db.session.execute(db.text("DROP TABLE IF EXISTS item_fase_ii"))
-            db.session.execute(db.text("DROP TABLE IF EXISTS item_fase_iii"))
-            db.session.commit()
-            print("  ✓ Tablas legacy eliminadas")
-        except Exception as e:
-            print(f"  ⚠ Error eliminando tablas legacy: {e}")
+    # Migrar datos
+    print("\n🔄 Migrando datos...")
+    proyecto_map = migrate_proyectos(old_data, fase_ids, app)
+    migrate_unidades_funcionales(old_data, proyecto_map, app)
+    migrate_items_to_costos(old_data, proyecto_map, item_tipos, app)
+    migrate_anual_increment(old_data, app)
     
     print("\n" + "="*60)
     print("✅ MIGRACIÓN COMPLETADA!")
@@ -544,11 +553,7 @@ def main():
         print(f"  • Items Fase III: {len(old_data['items_fase_iii'])}")
         print(f"  • Incrementos Anuales: {len(old_data['anual_increment'])}")
     
-    print("\nPróximos pasos:")
-    print("1. Ejecutar: python run.py")
-    print("2. Probar los endpoints de la API")
-    print("3. Verificar que los datos se migraron correctamente")
-    print("\n💾 Nota: Tu base de datos antigua ha sido respaldada.")
+    print("\n✅ Listo! Ejecuta la aplicación: python run.py")
     print("="*60)
 
 

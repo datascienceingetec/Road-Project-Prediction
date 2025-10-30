@@ -23,9 +23,9 @@ def create_app():
     # Initialize SQLAlchemy
     db.init_app(app)
     
-    # Create tables if they don't exist
-    with app.app_context():
-        db.create_all()
+    # NOTE: Database tables are now managed by Alembic migrations
+    # To create/update tables, use: alembic upgrade head
+    # See docs/ALEMBIC_MIGRATION_GUIDE.md for details
 
     register_blueprints(app)
 

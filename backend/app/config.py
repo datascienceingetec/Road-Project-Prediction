@@ -15,8 +15,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "False").lower() == "true"
     
-    GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
-
     BASE_DIR = BASE_DIR
     PROJECT_ROOT = PROJECT_ROOT
     INSTANCE_DIR = INSTANCE_DIR

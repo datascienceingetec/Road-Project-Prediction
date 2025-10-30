@@ -1,0 +1,6 @@
+Generic single-database configuration for Alembic with Flask-SQLAlchemy.
+
+This directory contains Alembic migration scripts for the Road Project Prediction database.
+
+For detailed instructions on how to use Alembic migrations, see:
+docs/ALEMBIC_MIGRATION_GUIDE.md
