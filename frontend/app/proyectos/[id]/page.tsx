@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { api, type Proyecto, type UnidadFuncional, type ItemFase } from "@/lib/api"
+import { api, type Proyecto, type UnidadFuncional, type CostoItem, type FaseItemRequerido } from "@/lib/api"
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
 import { GoogleMap } from "@/components/google-map"
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
@@ -13,7 +13,8 @@ export default function ProjectDetailPage() {
   const id = params.id as string
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
   const [unidades, setUnidades] = useState<UnidadFuncional[]>([])
-  const [items, setItems] = useState<ItemFase | null>(null)
+  const [costos, setCostos] = useState<CostoItem[]>([])
+  const [faseItems, setFaseItems] = useState<FaseItemRequerido[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"unidades" | "costos">("unidades")
   const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null)
@@ -33,12 +34,14 @@ export default function ProjectDetailPage() {
       const unidadesData = await api.getUnidadesFuncionales(id)
       setUnidades(unidadesData)
 
-      let fase = "fase_i"
-      if (proyectoData.fase.includes("II")) fase = "fase_ii"
-      else if (proyectoData.fase.includes("III")) fase = "fase_iii"
+      const costosData = await api.getCostos(id)
+      setCostos(costosData)
 
-      const itemsData = await api.getItems(id, fase as any)
-      setItems(itemsData)
+      // Obtener los items requeridos para la fase del proyecto
+      if (proyectoData.fase_id) {
+        const faseItemsData = await api.getFaseItems(proyectoData.fase_id)
+        setFaseItems(faseItemsData)
+      }
     }
 
     setLoading(false)
@@ -90,7 +93,7 @@ export default function ProjectDetailPage() {
   const mapMarkers = unidades.map((unidad, index) => ({
     lat: proyecto.lat_inicio! + index * 0.01,
     lng: proyecto.lng_inicio! + index * 0.01,
-    title: `UF-${String(unidad.unidad_funcional).padStart(2, "0")}`,
+    title: `UF-${String(unidad.numero).padStart(2, "0")}`,
     color: (selectedUnitIndex === index ? "accent" : "primary") as "primary" | "accent",
   }))
 
@@ -139,7 +142,7 @@ export default function ProjectDetailPage() {
         </div>
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
           <p className="text-gray-500 text-sm font-medium leading-normal">Fase</p>
-          <p className="text-[#111418] tracking-light text-base font-bold leading-tight">{proyecto.fase}</p>
+          <p className="text-[#111418] tracking-light text-base font-bold leading-tight">{proyecto.fase?.nombre || "Sin fase"}</p>
         </div>
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
           <p className="text-gray-500 text-sm font-medium leading-normal">Año Inicio</p>
@@ -158,7 +161,7 @@ export default function ProjectDetailPage() {
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
           <p className="text-gray-500 text-sm font-medium leading-normal">Costo Total</p>
           <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
-            {formatCurrency(proyecto.costo)}
+            {formatCurrency(costos.reduce((sum, c) => sum + c.valor, 0))}
           </p>
         </div>
       </section>
@@ -246,16 +249,28 @@ export default function ProjectDetailPage() {
               </div>
             )}
 
-            {activeTab === "costos" && items && (
+            {activeTab === "costos" && (
               <div className="p-4 space-y-3">
-                {Object.entries(items)
-                  .filter(([key]) => !["proyecto_id", "fase", "id", "codigo"].includes(key))
-                  .map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm font-medium text-gray-700 capitalize">{key.replace(/_/g, " ")}</span>
-                      <span className="text-sm font-bold text-gray-900">{formatCurrency(value as number)}</span>
-                    </div>
-                  ))}
+                {faseItems.length > 0 ? (
+                  faseItems.map((item) => {
+                    // Buscar el costo correspondiente a este item
+                    const costo = costos.find((c) => c.item_tipo_id === item.item_tipo_id)
+                    return (
+                      <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-sm font-medium text-gray-700">
+                          {item.descripcion || item.item_tipo?.nombre || "Item desconocido"}
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {costo ? formatCurrency(costo.valor) : formatCurrency(0)}
+                        </span>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="p-8 text-center text-gray-500">
+                    <p>No hay items definidos para esta fase</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

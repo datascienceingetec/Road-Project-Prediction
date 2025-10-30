@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { api, type Proyecto } from "@/lib/api"
+import { api, type Proyecto, type Fase, type EnumOption } from "@/lib/api"
 
 export default function EditarProyectoPage() {
   const params = useParams()
@@ -15,16 +15,16 @@ export default function EditarProyectoPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
+  const [fases, setFases] = useState<Fase[]>([])
+  const [zonaOptions, setZonaOptions] = useState<EnumOption[]>([])
   const [formData, setFormData] = useState({
     nombre: "",
     codigo: "",
-    num_ufs: 0,
     longitud: 0,
     anio_inicio: new Date().getFullYear(),
     duracion: 0,
-    fase: "Fase I - Prefactibilidad",
-    ubicacion: "Rural",
-    costo: 0,
+    fase_id: 0,
+    ubicacion: "",
     lat_inicio: 0,
     lng_inicio: 0,
     lat_fin: 0,
@@ -32,6 +32,15 @@ export default function EditarProyectoPage() {
   })
 
   useEffect(() => {
+    const loadOptions = async () => {
+      const [fasesData, zonaData] = await Promise.all([
+        api.getFases(),
+        api.getZonaOptions(),
+      ])
+      setFases(fasesData)
+      setZonaOptions(zonaData)
+    }
+    loadOptions()
     loadProyecto()
   }, [id])
 
@@ -44,13 +53,11 @@ export default function EditarProyectoPage() {
         setFormData({
           nombre: data.nombre,
           codigo: data.codigo,
-          num_ufs: data.num_ufs,
           longitud: data.longitud,
           anio_inicio: data.anio_inicio,
           duracion: data.duracion || 0,
-          fase: data.fase,
+          fase_id: data.fase_id,
           ubicacion: data.ubicacion,
-          costo: data.costo,
           lat_inicio: data.lat_inicio || 0,
           lng_inicio: data.lng_inicio || 0,
           lat_fin: data.lat_fin || 0,
@@ -69,7 +76,7 @@ export default function EditarProyectoPage() {
     setSaving(true)
 
     try {
-      await api.updateProyecto(id, formData)
+      await api.updateProyecto(id, formData as any)
       alert("Proyecto actualizado exitosamente")
       router.push(`/proyectos/${id}`)
     } catch (error) {
@@ -168,19 +175,22 @@ export default function EditarProyectoPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fase *</label>
                 <select
-                  name="fase"
-                  value={formData.fase}
+                  name="fase_id"
+                  value={formData.fase_id}
                   onChange={handleChange}
                   required
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Fase I - Prefactibilidad">Fase I - Prefactibilidad</option>
-                  <option value="Fase II - Factibilidad">Fase II - Factibilidad</option>
-                  <option value="Fase III - Diseños a Detalle">Fase III - Diseños a Detalle</option>
+                  <option value="">Seleccione una fase...</option>
+                  {fases.map((fase) => (
+                    <option key={fase.id} value={fase.id}>
+                      {fase.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ubicación *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zona *</label>
                 <select
                   name="ubicacion"
                   value={formData.ubicacion}
@@ -188,11 +198,12 @@ export default function EditarProyectoPage() {
                   required
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Rural">Rural</option>
-                  <option value="Urbano">Urbano</option>
-                  <option value="Plano">Plano</option>
-                  <option value="Ondulado">Ondulado</option>
-                  <option value="Montañoso">Montañoso</option>
+                  <option value="">Seleccione una zona...</option>
+                  {zonaOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -212,32 +223,6 @@ export default function EditarProyectoPage() {
                   value={formData.longitud}
                   onChange={handleChange}
                   step="0.1"
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Unidades Funcionales *
-                </label>
-                <input
-                  type="number"
-                  name="num_ufs"
-                  value={formData.num_ufs}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Costo Total (COP) *
-                </label>
-                <input
-                  type="number"
-                  name="costo"
-                  value={formData.costo}
-                  onChange={handleChange}
                   required
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />

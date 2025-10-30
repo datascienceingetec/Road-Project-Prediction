@@ -1,7 +1,8 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
+from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum
 
 db = SQLAlchemy()
 
@@ -89,9 +90,9 @@ class UnidadFuncional(db.Model):
     puentes_peatonales_mt2 = Column(Integer, default=0)
     tuneles_und = Column(Integer, default=0)
     tuneles_km = Column(Float, default=0)
-    alcance = Column(Text)
-    zona = Column(String(100))
-    tipo_terreno = Column(String(100))
+    alcance = Column(SQLEnum(AlcanceEnum), nullable=True)
+    zona = Column(SQLEnum(ZonaEnum), nullable=True)
+    tipo_terreno = Column(SQLEnum(TipoTerrenoEnum), nullable=True)
     
     # Relationships
     proyecto = relationship('Proyecto', back_populates='unidades_funcionales')
@@ -108,9 +109,9 @@ class UnidadFuncional(db.Model):
             'puentes_peatonales_mt2': self.puentes_peatonales_mt2,
             'tuneles_und': self.tuneles_und,
             'tuneles_km': self.tuneles_km,
-            'alcance': self.alcance,
-            'zona': self.zona,
-            'tipo_terreno': self.tipo_terreno
+            'alcance': self.alcance.value if self.alcance else None,
+            'zona': self.zona.value if self.zona else None,
+            'tipo_terreno': self.tipo_terreno.value if self.tipo_terreno else None
         }
 
 

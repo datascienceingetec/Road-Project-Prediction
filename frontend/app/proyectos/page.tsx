@@ -2,24 +2,29 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { api, type Proyecto } from "@/lib/api"
+import { api, type Proyecto, type Fase } from "@/lib/api"
 
 export default function ProyectosPage() {
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
+  const [fases, setFases] = useState<Fase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [faseFilter, setFaseFilter] = useState("Todas")
+  const [faseFilter, setFaseFilter] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
   useEffect(() => {
-    loadProyectos()
+    loadData()
   }, [])
 
-  const loadProyectos = async () => {
+  const loadData = async () => {
     setLoading(true)
-    const data = await api.getProyectos()
-    setProyectos(data)
+    const [proyectosData, fasesData] = await Promise.all([
+      api.getProyectos(),
+      api.getFases(),
+    ])
+    setProyectos(proyectosData)
+    setFases(fasesData)
     setLoading(false)
   }
 
@@ -28,7 +33,7 @@ export default function ProyectosPage() {
       proyecto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proyecto.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proyecto.ubicacion.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFase = faseFilter === "Todas" || proyecto.fase === faseFilter
+    const matchesFase = faseFilter === null || proyecto.fase_id === faseFilter
     return matchesSearch && matchesFase
   })
 
@@ -44,23 +49,25 @@ export default function ProyectosPage() {
     }).format(value)
   }
 
-  const getFaseBadge = (fase: string) => {
-    switch (fase) {
-      case "Fase I - Prefactibilidad":
-        return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400"
-      case "Fase II - Factibilidad":
-        return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400"
-      case "Fase III - Diseños a Detalle":
-        return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-green-700 bg-green-100 dark:bg-green-500/10 dark:text-green-400"
-      default:
-        return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-gray-700 bg-gray-100"
+  const getFaseBadge = (faseNombre?: string) => {
+    if (!faseNombre) return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-gray-700 bg-gray-100"
+    
+    if (faseNombre.includes("Fase I") || faseNombre.includes("I")) {
+      return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400"
     }
+    if (faseNombre.includes("Fase II") || faseNombre.includes("II")) {
+      return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400"
+    }
+    if (faseNombre.includes("Fase III") || faseNombre.includes("III")) {
+      return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-green-700 bg-green-100 dark:bg-green-500/10 dark:text-green-400"
+    }
+    return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-gray-700 bg-gray-100"
   }
 
   const handleDelete = async (id: number) => {
     if (confirm("¿Está seguro de eliminar este proyecto?")) {
       await api.deleteProyecto(id)
-      loadProyectos()
+      loadData()
     }
   }
 
@@ -114,24 +121,35 @@ export default function ProyectosPage() {
             </label>
           </div>
           <div className="flex gap-2 p-1 overflow-x-auto">
-            {["Todas", "Fase I - Prefactibilidad", "Fase II - Factibilidad", "Fase III - Diseños a Detalle"].map(
-              (fase) => (
-                <button
-                  key={fase}
-                  onClick={() => {
-                    setFaseFilter(fase)
-                    setCurrentPage(1)
-                  }}
-                  className={`flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 text-sm font-semibold ${
-                    faseFilter === fase
-                      ? "bg-primary text-white"
-                      : "bg-white dark:bg-[#1e293b] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 shadow-sm"
-                  }`}
-                >
-                  {fase}
-                </button>
-              ),
-            )}
+            <button
+              onClick={() => {
+                setFaseFilter(null)
+                setCurrentPage(1)
+              }}
+              className={`flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 text-sm font-semibold ${
+                faseFilter === null
+                  ? "bg-primary text-white"
+                  : "bg-white dark:bg-[#1e293b] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 shadow-sm"
+              }`}
+            >
+              Todas
+            </button>
+            {fases.map((fase) => (
+              <button
+                key={fase.id}
+                onClick={() => {
+                  setFaseFilter(fase.id)
+                  setCurrentPage(1)
+                }}
+                className={`flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 text-sm font-semibold ${
+                  faseFilter === fase.id
+                    ? "bg-primary text-white"
+                    : "bg-white dark:bg-[#1e293b] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 shadow-sm"
+                }`}
+              >
+                {fase.nombre}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -148,9 +166,6 @@ export default function ProyectosPage() {
                   <th className="px-4 py-3 text-left text-white/90 w-48 text-sm font-semibold leading-normal">Fase</th>
                   <th className="px-4 py-3 text-left text-white/90 text-sm font-semibold leading-normal">
                     Longitud (km)
-                  </th>
-                  <th className="px-4 py-3 text-left text-white/90 text-sm font-semibold leading-normal">
-                    Costo Total
                   </th>
                   <th className="px-4 py-3 text-left text-white/90 text-sm font-semibold leading-normal">Año Inicio</th>
                   <th className="px-4 py-3 text-left text-white/90 w-28 text-sm font-semibold leading-normal">
@@ -171,13 +186,10 @@ export default function ProyectosPage() {
                       {proyecto.ubicacion}
                     </td>
                     <td className="h-[72px] px-4 py-2 text-sm font-normal leading-normal">
-                      <span className={getFaseBadge(proyecto.fase)}>{proyecto.fase}</span>
+                      <span className={getFaseBadge(proyecto.fase?.nombre)}>{proyecto.fase?.nombre || "Sin fase"}</span>
                     </td>
                     <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
                       {proyecto.longitud.toFixed(2)}
-                    </td>
-                    <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
-                      {formatCurrency(proyecto.costo)}
                     </td>
                     <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
                       {proyecto.anio_inicio}

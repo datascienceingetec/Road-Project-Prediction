@@ -322,9 +322,9 @@ def migrate_unidades_funcionales(old_data, proyecto_map, app):
                 puentes_peatonales_mt2=old_uf.get('puentes_peatonales_mt2', 0),
                 tuneles_und=old_uf.get('tuneles_und', 0),
                 tuneles_km=old_uf.get('tuneles_km', 0),
-                alcance=old_uf.get('alcance'),
-                zona=old_uf.get('zona'),
-                tipo_terreno=old_uf.get('tipo_terreno')
+                alcance=old_uf.get('alcance').strip(),
+                zona=old_uf.get('zona').strip(),
+                tipo_terreno=old_uf.get('tipo_terreno').strip()
             )
             db.session.add(uf)
             count += 1

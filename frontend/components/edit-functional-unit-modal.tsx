@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { type UnidadFuncional, api } from "@/lib/api"
+import { type UnidadFuncional, type EnumOption, api } from "@/lib/api"
 
 interface EditFunctionalUnitModalProps {
   unidad: UnidadFuncional | null
@@ -22,14 +22,32 @@ export function EditFunctionalUnitModal({
 }: EditFunctionalUnitModalProps) {
   const [formData, setFormData] = useState<Partial<UnidadFuncional>>({})
   const [loading, setLoading] = useState(false)
+  const [alcanceOptions, setAlcanceOptions] = useState<EnumOption[]>([])
+  const [zonaOptions, setZonaOptions] = useState<EnumOption[]>([])
+  const [tipoTerrenoOptions, setTipoTerrenoOptions] = useState<EnumOption[]>([])
+
+  useEffect(() => {
+    // Load enum options
+    const loadEnums = async () => {
+      const [alcance, zona, tipoTerreno] = await Promise.all([
+        api.getAlcanceOptions(),
+        api.getZonaOptions(),
+        api.getTipoTerrenoOptions(),
+      ])
+      setAlcanceOptions(alcance)
+      setZonaOptions(zona)
+      setTipoTerrenoOptions(tipoTerreno)
+    }
+    loadEnums()
+  }, [])
 
   useEffect(() => {
     if (unidad) {
       setFormData(unidad)
     } else {
       setFormData({
-        codigo: codigoProyecto,
-        unidad_funcional: 1,
+        proyecto_id: 0,
+        numero: 1,
         longitud_km: 0,
         puentes_vehiculares_und: 0,
         puentes_vehiculares_mt2: 0,
@@ -37,12 +55,12 @@ export function EditFunctionalUnitModal({
         puentes_peatonales_mt2: 0,
         tuneles_und: 0,
         tuneles_km: 0,
-        alcance: "Construcción",
-        zona: "Rural",
-        tipo_terreno: "Plano",
+        alcance: alcanceOptions[0]?.value || "",
+        zona: zonaOptions[0]?.value || "",
+        tipo_terreno: tipoTerrenoOptions[0]?.value || "",
       })
     }
-  }, [unidad, codigoProyecto])
+  }, [unidad, codigoProyecto, alcanceOptions, zonaOptions, tipoTerrenoOptions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,10 +69,10 @@ export function EditFunctionalUnitModal({
     try {
       if (unidad) {
         // Actualizar (por ahora solo creamos nuevas)
-        await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+        await api.createUnidadFuncional(codigoProyecto, formData as Omit<UnidadFuncional, "id" | "proyecto_id">)
       } else {
         // Crear nueva
-        await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+        await api.createUnidadFuncional(codigoProyecto, formData as Omit<UnidadFuncional, "id" | "proyecto_id">)
       }
       onSave()
       onClose()
@@ -85,8 +103,8 @@ export function EditFunctionalUnitModal({
               <label className="block text-sm font-medium text-gray-700 mb-2">Número de Unidad Funcional</label>
               <input
                 type="number"
-                value={formData.unidad_funcional || ""}
-                onChange={(e) => setFormData({ ...formData, unidad_funcional: Number(e.target.value) })}
+                value={formData.numero || ""}
+                onChange={(e) => setFormData({ ...formData, numero: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               />
@@ -107,42 +125,51 @@ export function EditFunctionalUnitModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Alcance</label>
               <select
-                value={formData.alcance || "Construcción"}
+                value={formData.alcance || ""}
                 onChange={(e) => setFormData({ ...formData, alcance: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               >
-                <option value="Construcción">Construcción</option>
-                <option value="Mejoramiento">Mejoramiento</option>
-                <option value="Rehabilitación">Rehabilitación</option>
+                <option value="">Seleccione...</option>
+                {alcanceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Zona</label>
               <select
-                value={formData.zona || "Rural"}
+                value={formData.zona || ""}
                 onChange={(e) => setFormData({ ...formData, zona: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               >
-                <option value="Rural">Rural</option>
-                <option value="Urbana">Urbana</option>
-                <option value="Suburbana">Suburbana</option>
+                <option value="">Seleccione...</option>
+                {zonaOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Terreno</label>
               <select
-                value={formData.tipo_terreno || "Plano"}
+                value={formData.tipo_terreno || ""}
                 onChange={(e) => setFormData({ ...formData, tipo_terreno: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               >
-                <option value="Plano">Plano</option>
-                <option value="Ondulado">Ondulado</option>
-                <option value="Montañoso">Montañoso</option>
+                <option value="">Seleccione...</option>
+                {tipoTerrenoOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

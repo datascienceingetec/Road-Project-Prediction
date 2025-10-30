@@ -2,36 +2,54 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { api, type Fase, type EnumOption } from "@/lib/api"
 
 export default function NuevoProyectoPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [fases, setFases] = useState<Fase[]>([])
+  const [zonaOptions, setZonaOptions] = useState<EnumOption[]>([])
   const [formData, setFormData] = useState({
     nombre: "",
     codigo: "",
-    num_ufs: 1,
     longitud: 0,
     anio_inicio: new Date().getFullYear(),
     duracion: 0,
-    fase: "Fase I - Prefactibilidad",
-    ubicacion: "Rural",
-    costo: 0,
+    fase_id: 0,
+    ubicacion: "",
     lat_inicio: 0,
     lng_inicio: 0,
     lat_fin: 0,
     lng_fin: 0,
   })
 
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [fasesData, zonaData] = await Promise.all([
+        api.getFases(),
+        api.getZonaOptions(),
+      ])
+      setFases(fasesData)
+      setZonaOptions(zonaData)
+      if (fasesData.length > 0) {
+        setFormData(prev => ({ ...prev, fase_id: fasesData[0].id }))
+      }
+      if (zonaData.length > 0) {
+        setFormData(prev => ({ ...prev, ubicacion: zonaData[0].value }))
+      }
+    }
+    loadOptions()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
     try {
-      const newProyecto = await api.createProyecto(formData)
+      const newProyecto = await api.createProyecto(formData as any)
       alert("Proyecto creado exitosamente")
       router.push(`/proyectos/${newProyecto.codigo}`)
     } catch (error) {
@@ -103,19 +121,22 @@ export default function NuevoProyectoPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fase *</label>
                 <select
-                  name="fase"
-                  value={formData.fase}
+                  name="fase_id"
+                  value={formData.fase_id}
                   onChange={handleChange}
                   required
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Fase I - Prefactibilidad">Fase I - Prefactibilidad</option>
-                  <option value="Fase II - Factibilidad">Fase II - Factibilidad</option>
-                  <option value="Fase III - Diseños a Detalle">Fase III - Diseños a Detalle</option>
+                  <option value="">Seleccione una fase...</option>
+                  {fases.map((fase) => (
+                    <option key={fase.id} value={fase.id}>
+                      {fase.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ubicación *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zona *</label>
                 <select
                   name="ubicacion"
                   value={formData.ubicacion}
@@ -123,11 +144,12 @@ export default function NuevoProyectoPage() {
                   required
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Rural">Rural</option>
-                  <option value="Urbano">Urbano</option>
-                  <option value="Plano">Plano</option>
-                  <option value="Ondulado">Ondulado</option>
-                  <option value="Montañoso">Montañoso</option>
+                  <option value="">Seleccione una zona...</option>
+                  {zonaOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -149,34 +171,6 @@ export default function NuevoProyectoPage() {
                   step="0.1"
                   required
                   placeholder="0.0"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Unidades Funcionales *
-                </label>
-                <input
-                  type="number"
-                  name="num_ufs"
-                  value={formData.num_ufs}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Costo Total (COP) *
-                </label>
-                <input
-                  type="number"
-                  name="costo"
-                  value={formData.costo}
-                  onChange={handleChange}
-                  required
-                  placeholder="0"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>

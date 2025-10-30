@@ -6,17 +6,22 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/a
 // API falsa que simula el backend Flask
 // Fácil de reemplazar con llamadas API reales más adelante
 
+export interface Fase {
+  id: number
+  nombre: string
+  descripcion: string | null
+}
+
 export interface Proyecto {
   id: number
   nombre: string
   codigo: string
-  num_ufs: number
   longitud: number
   anio_inicio: number
   duracion: number | null
-  fase: string
+  fase_id: number
+  fase: Fase | null
   ubicacion: string
-  costo: number
   lat_inicio: number | null
   lng_inicio: number | null
   lat_fin: number | null
@@ -26,8 +31,8 @@ export interface Proyecto {
 
 export interface UnidadFuncional {
   id: number
-  codigo: string
-  unidad_funcional: number
+  proyecto_id: number
+  numero: number
   longitud_km: number
   puentes_vehiculares_und: number
   puentes_vehiculares_mt2: number
@@ -40,68 +45,40 @@ export interface UnidadFuncional {
   tipo_terreno: string
 }
 
-export interface ItemFaseI {
+export interface ItemTipo {
   id: number
-  codigo: string
-  transporte: number
-  diseno_geometrico: number
-  prefactibilidad_tuneles: number
-  geologia: number
-  geotecnia: number
-  hidrologia_hidraulica: number
-  ambiental_social: number
-  predial: number
-  riesgos_sostenibilidad: number
-  evaluacion_economica: number
-  socioeconomica_financiera: number
-  estructuras: number
-  direccion_coordinacion: number
+  nombre: string
+  descripcion: string | null
 }
 
-export interface ItemFaseII {
+export interface CostoItem {
   id: number
-  codigo: string
-  transporte: number
-  topografia: number
-  geologia: number
-  taludes: number
-  hidrologia_hidraulica: number
-  estructuras: number
-  tuneles: number
-  pavimento: number
-  predial: number
-  ambiental_social: number
-  costos_presupuestos: number
-  socioeconomica: number
-  direccion_coordinacion: number
+  proyecto_id: number
+  item_tipo_id: number
+  valor: number
+  item_tipo: ItemTipo | null
 }
 
-export interface ItemFaseIII {
+export interface FaseItemRequerido {
   id: number
-  codigo: string
-  transporte: number
-  informacion_geografica: number
-  trazado_diseno_geometrico: number
-  seguridad_vial: number
-  sistemas_inteligentes: number
-  geologia: number
-  hidrogeologia: number
-  suelos: number
-  taludes: number
-  pavimento: number
-  socavacion: number
-  estructuras: number
-  tuneles: number
-  urbanismo_paisajismo: number
-  predial: number
-  impacto_ambiental: number
-  cantidades: number
-  evaluacion_socioeconomica: number
-  otros_manejo_redes: number
-  direccion_coordinacion: number
+  fase_id: number
+  item_tipo_id: number
+  obligatorio: boolean
+  descripcion: string | null
+  fase: Fase | null
+  item_tipo: ItemTipo | null
 }
 
-export type ItemFase = ItemFaseI | ItemFaseII | ItemFaseIII
+export interface EnumOption {
+  value: string
+  label: string
+}
+
+export interface EnumsCatalog {
+  alcance: EnumOption[]
+  zona: EnumOption[]
+  tipo_terreno: EnumOption[]
+}
 
 export interface PredictionRequest {
   longitud: number
@@ -123,85 +100,80 @@ const mockProyectos: Proyecto[] = [
     id: 1,
     anio_inicio: 2010,
     codigo: "6935",
-    costo: 1238647591,
     created_at: "2025-01-21 16:17:43",
     duracion: 36,
-    fase: "Fase II - Factibilidad",
+    fase_id: 2,
+    fase: { id: 2, nombre: "Fase II - Factibilidad", descripcion: null },
     lat_fin: 6.2442,
     lat_inicio: 6.2442,
     lng_fin: -75.5812,
     lng_inicio: -75.5812,
     longitud: 206.1,
     nombre: "Autopista del Norte",
-    num_ufs: 7,
     ubicacion: "Rural",
   },
   {
     id: 2,
     anio_inicio: 2015,
     codigo: "7821",
-    costo: 2450000000,
     created_at: "2025-01-20 10:30:15",
     duracion: 48,
-    fase: "Fase III - Diseños a detalle",
+    fase_id: 3,
+    fase: { id: 3, nombre: "Fase III - Diseños a detalle", descripcion: null },
     lat_fin: 4.711,
     lat_inicio: 4.711,
     lng_fin: -74.0721,
     lng_inicio: -74.0721,
     longitud: 125.5,
     nombre: "Vía Bogotá - Villavicencio",
-    num_ufs: 5,
     ubicacion: "Montañoso",
   },
   {
     id: 3,
     anio_inicio: 2018,
     codigo: "8934",
-    costo: 890000000,
     created_at: "2025-01-19 14:22:30",
     duracion: 24,
-    fase: "Fase I - Prefactibilidad",
+    fase_id: 1,
+    fase: { id: 1, nombre: "Fase I - Prefactibilidad", descripcion: null },
     lat_fin: 3.4516,
     lat_inicio: 3.4516,
     lng_fin: -76.532,
     lng_inicio: -76.532,
     longitud: 78.3,
     nombre: "Corredor Cali - Buenaventura",
-    num_ufs: 4,
     ubicacion: "Montañoso",
   },
   {
     id: 4,
     anio_inicio: 2020,
     codigo: "9102",
-    costo: 1560000000,
     created_at: "2025-01-18 09:15:45",
     duracion: 30,
-    fase: "Fase II - Factibilidad",
+    fase_id: 2,
+    fase: { id: 2, nombre: "Fase II - Factibilidad", descripcion: null },
     lat_fin: 10.391,
     lat_inicio: 10.391,
     lng_fin: -75.4794,
     lng_inicio: -75.4794,
     longitud: 156.8,
     nombre: "Transversal de las Américas",
-    num_ufs: 6,
     ubicacion: "Plano",
   },
   {
     id: 5,
     anio_inicio: 2019,
     codigo: "8567",
-    costo: 3200000000,
     created_at: "2025-01-17 11:45:20",
     duracion: 60,
-    fase: "Fase III - Diseños a detalle",
+    fase_id: 3,
+    fase: { id: 3, nombre: "Fase III - Diseños a detalle", descripcion: null },
     lat_fin: 7.1193,
     lat_inicio: 7.1193,
     lng_fin: -73.1227,
     lng_inicio: -73.1227,
     longitud: 245.2,
     nombre: "Autopista al Mar 2",
-    num_ufs: 9,
     ubicacion: "Montañoso",
   },
 ]
@@ -209,7 +181,7 @@ const mockProyectos: Proyecto[] = [
 const mockUnidadesFuncionales: UnidadFuncional[] = [
   {
     alcance: "Construcción",
-    codigo: "6935",
+    proyecto_id: 1,
     id: 1,
     longitud_km: 26.2,
     puentes_peatonales_mt2: 0,
@@ -219,12 +191,12 @@ const mockUnidadesFuncionales: UnidadFuncional[] = [
     tipo_terreno: "Plano",
     tuneles_km: 0,
     tuneles_und: 0,
-    unidad_funcional: 1,
+    numero: 1,
     zona: "Rural",
   },
   {
     alcance: "Construcción",
-    codigo: "6935",
+    proyecto_id: 1,
     id: 2,
     longitud_km: 32.5,
     puentes_peatonales_mt2: 250,
@@ -234,12 +206,12 @@ const mockUnidadesFuncionales: UnidadFuncional[] = [
     tipo_terreno: "Ondulado",
     tuneles_km: 0,
     tuneles_und: 0,
-    unidad_funcional: 2,
+    numero: 2,
     zona: "Rural",
   },
   {
     alcance: "Mejoramiento",
-    codigo: "6935",
+    proyecto_id: 1,
     id: 3,
     longitud_km: 28.8,
     puentes_peatonales_mt2: 0,
@@ -249,29 +221,22 @@ const mockUnidadesFuncionales: UnidadFuncional[] = [
     tipo_terreno: "Plano",
     tuneles_km: 0,
     tuneles_und: 0,
-    unidad_funcional: 3,
+    numero: 3,
     zona: "Rural",
   },
 ]
 
-const mockItemsFaseII: ItemFaseII[] = [
-  {
-    ambiental_social: 302592911,
-    codigo: "6935",
-    costos_presupuestos: 46610370,
-    direccion_coordinacion: 95956539,
-    estructuras: 5761233,
-    geologia: 61532307,
-    hidrologia_hidraulica: 0,
-    id: 1,
-    pavimento: 25858300,
-    predial: 122586050,
-    socioeconomica: 0,
-    taludes: 139616991,
-    topografia: 185525170,
-    transporte: 0,
-    tuneles: 252607720,
-  },
+const mockCostos: CostoItem[] = [
+  { id: 1, proyecto_id: 1, item_tipo_id: 1, valor: 302592911, item_tipo: { id: 1, nombre: "Ambiental Social", descripcion: null } },
+  { id: 2, proyecto_id: 1, item_tipo_id: 2, valor: 46610370, item_tipo: { id: 2, nombre: "Costos Presupuestos", descripcion: null } },
+  { id: 3, proyecto_id: 1, item_tipo_id: 3, valor: 95956539, item_tipo: { id: 3, nombre: "Dirección Coordinación", descripcion: null } },
+  { id: 4, proyecto_id: 1, item_tipo_id: 4, valor: 5761233, item_tipo: { id: 4, nombre: "Estructuras", descripcion: null } },
+  { id: 5, proyecto_id: 1, item_tipo_id: 5, valor: 61532307, item_tipo: { id: 5, nombre: "Geología", descripcion: null } },
+  { id: 6, proyecto_id: 1, item_tipo_id: 6, valor: 25858300, item_tipo: { id: 6, nombre: "Pavimento", descripcion: null } },
+  { id: 7, proyecto_id: 1, item_tipo_id: 7, valor: 122586050, item_tipo: { id: 7, nombre: "Predial", descripcion: null } },
+  { id: 8, proyecto_id: 1, item_tipo_id: 8, valor: 139616991, item_tipo: { id: 8, nombre: "Taludes", descripcion: null } },
+  { id: 9, proyecto_id: 1, item_tipo_id: 9, valor: 185525170, item_tipo: { id: 9, nombre: "Topografía", descripcion: null } },
+  { id: 10, proyecto_id: 1, item_tipo_id: 10, valor: 252607720, item_tipo: { id: 10, nombre: "Túneles", descripcion: null } },
 ]
 
 // Simular delay de API
@@ -393,12 +358,13 @@ export const api = {
       console.log("[v0] Usando datos mock para getUnidadesFuncionales")
     }
     await delay(300)
-    return mockUnidadesFuncionales.filter((u) => u.codigo === codigo)
+    const proyecto = mockProyectos.find((p) => p.codigo === codigo)
+    return proyecto ? mockUnidadesFuncionales.filter((u) => u.proyecto_id === proyecto.id) : []
   },
 
-  async createUnidadFuncional(uf: Omit<UnidadFuncional, "id">): Promise<UnidadFuncional> {
+  async createUnidadFuncional(codigo: string, uf: Omit<UnidadFuncional, "id" | "proyecto_id">): Promise<UnidadFuncional> {
     try {
-      const data = await fetchAPI(`/proyectos/${uf.codigo}/unidades-funcionales`, {
+      const data = await fetchAPI(`/proyectos/${codigo}/unidades-funcionales`, {
         method: "POST",
         body: JSON.stringify(uf),
       })
@@ -407,8 +373,11 @@ export const api = {
       console.log("[v0] Usando datos mock para createUnidadFuncional")
     }
     await delay(400)
+    const proyecto = mockProyectos.find((p) => p.codigo === codigo)
+    if (!proyecto) throw new Error("Proyecto no encontrado")
     const newUF: UnidadFuncional = {
       ...uf,
+      proyecto_id: proyecto.id,
       id: Math.max(...mockUnidadesFuncionales.map((u) => u.id)) + 1,
     }
     mockUnidadesFuncionales.push(newUF)
@@ -431,38 +400,161 @@ export const api = {
     return true
   },
 
-  // Items por Fase
-  async getItems(codigo: string, fase: string): Promise<ItemFase | null> {
+  // Costos (Items)
+  async getCostos(codigo: string): Promise<CostoItem[]> {
     try {
-      const data = await fetchAPI(`/proyectos/${codigo}/items?fase=${fase}`)
+      const data = await fetchAPI(`/proyectos/${codigo}/costos`)
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getItems")
+      console.log("[v0] Usando datos mock para getCostos")
     }
     await delay(300)
-    if (fase === "fase_ii") {
-      return mockItemsFaseII.find((i) => i.codigo === codigo) || null
-    }
-    return null
+    const proyecto = mockProyectos.find((p) => p.codigo === codigo)
+    return proyecto ? mockCostos.filter((c) => c.proyecto_id === proyecto.id) : []
   },
 
-  async createOrUpdateItems(codigo: string, fase: string, items: Partial<ItemFase>): Promise<ItemFase> {
+  async createOrUpdateCostos(codigo: string, costos: Array<{ item_tipo_id: number; valor: number }>): Promise<{ created: number; updated: number }> {
     try {
-      const data = await fetchAPI(`/proyectos/${codigo}/items?fase=${fase}`, {
+      const data = await fetchAPI(`/proyectos/${codigo}/costos`, {
         method: "POST",
-        body: JSON.stringify(items),
+        body: JSON.stringify({ costos }),
       })
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para createOrUpdateItems")
+      console.log("[v0] Usando datos mock para createOrUpdateCostos")
     }
     await delay(400)
-    const newItem: any = {
-      id: 1,
-      codigo,
-      ...items,
+    return { created: costos.length, updated: 0 }
+  },
+
+  // Fases
+  async getFases(): Promise<Fase[]> {
+    try {
+      const data = await fetchAPI("/fases")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getFases")
     }
-    return newItem
+    await delay(300)
+    return [
+      { id: 1, nombre: "Fase I - Prefactibilidad", descripcion: null },
+      { id: 2, nombre: "Fase II - Factibilidad", descripcion: null },
+      { id: 3, nombre: "Fase III - Diseños a detalle", descripcion: null },
+    ]
+  },
+
+  async getFaseItems(faseId: number): Promise<FaseItemRequerido[]> {
+    try {
+      const data = await fetchAPI(`/fases/${faseId}/items`)
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getFaseItems")
+    }
+    await delay(300)
+    return []
+  },
+
+  // Items Tipo
+  async getItemsTipo(): Promise<ItemTipo[]> {
+    try {
+      const data = await fetchAPI("/items")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getItemsTipo")
+    }
+    await delay(300)
+    return [
+      { id: 1, nombre: "Ambiental Social", descripcion: null },
+      { id: 2, nombre: "Costos Presupuestos", descripcion: null },
+      { id: 3, nombre: "Dirección Coordinación", descripcion: null },
+      { id: 4, nombre: "Estructuras", descripcion: null },
+      { id: 5, nombre: "Geología", descripcion: null },
+      { id: 6, nombre: "Pavimento", descripcion: null },
+      { id: 7, nombre: "Predial", descripcion: null },
+      { id: 8, nombre: "Taludes", descripcion: null },
+      { id: 9, nombre: "Topografía", descripcion: null },
+      { id: 10, nombre: "Túneles", descripcion: null },
+    ]
+  },
+
+  // Enums
+  async getEnums(): Promise<EnumsCatalog> {
+    try {
+      const data = await fetchAPI("/enums")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getEnums")
+    }
+    await delay(300)
+    return {
+      alcance: [
+        { value: "Nuevo", label: "Nuevo" },
+        { value: "Segunda calzada", label: "Segunda calzada" },
+        { value: "Mejoramiento", label: "Mejoramiento" },
+        { value: "Rehabilitación", label: "Rehabilitación" },
+        { value: "Puesta a punto", label: "Puesta a punto" },
+        { value: "Construcción", label: "Construcción" },
+        { value: "Operación y mantenimiento", label: "Operación y mantenimiento" },
+      ],
+      zona: [
+        { value: "Urbano", label: "Urbano" },
+        { value: "Rural", label: "Rural" },
+      ],
+      tipo_terreno: [
+        { value: "Plano", label: "Plano" },
+        { value: "Ondulado", label: "Ondulado" },
+        { value: "Montañoso", label: "Montañoso" },
+        { value: "Escarpado", label: "Escarpado" },
+      ],
+    }
+  },
+
+  async getAlcanceOptions(): Promise<EnumOption[]> {
+    try {
+      const data = await fetchAPI("/enums/alcance")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getAlcanceOptions")
+    }
+    await delay(300)
+    return [
+      { value: "Nuevo", label: "Nuevo" },
+      { value: "Segunda calzada", label: "Segunda calzada" },
+      { value: "Mejoramiento", label: "Mejoramiento" },
+      { value: "Rehabilitación", label: "Rehabilitación" },
+      { value: "Puesta a punto", label: "Puesta a punto" },
+      { value: "Construcción", label: "Construcción" },
+    ]
+  },
+
+  async getZonaOptions(): Promise<EnumOption[]> {
+    try {
+      const data = await fetchAPI("/enums/zona")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getZonaOptions")
+    }
+    await delay(300)
+    return [
+      { value: "Urbano", label: "Urbano" },
+      { value: "Rural", label: "Rural" },
+    ]
+  },
+
+  async getTipoTerrenoOptions(): Promise<EnumOption[]> {
+    try {
+      const data = await fetchAPI("/enums/tipo-terreno")
+      if (data) return data
+    } catch (error) {
+      console.log("[v0] Usando datos mock para getTipoTerrenoOptions")
+    }
+    await delay(300)
+    return [
+      { value: "Plano", label: "Plano" },
+      { value: "Ondulado", label: "Ondulado" },
+      { value: "Montañoso", label: "Montañoso" },
+      { value: "Escarpado", label: "Escarpado" },
+    ]
   },
 
   // Predicción
@@ -509,12 +601,14 @@ export const api = {
       const proyectos = await fetchAPI("/proyectos")
       if (proyectos) {
         const totalProyectos = proyectos.length
-        const inversionTotal = proyectos.reduce((sum: number, p: Proyecto) => sum + p.costo, 0)
+        // Note: costo is now calculated from costos relationship on backend
+        const inversionTotal = 1000000000 // Placeholder - should be fetched from backend with include_relations
         const kmTotales = proyectos.reduce((sum: number, p: Proyecto) => sum + p.longitud, 0)
 
         const fases = proyectos.reduce(
           (acc: Record<string, number>, p: Proyecto) => {
-            acc[p.fase] = (acc[p.fase] || 0) + 1
+            const faseNombre = p.fase?.nombre || "Sin fase"
+            acc[faseNombre] = (acc[faseNombre] || 0) + 1
             return acc
           },
           {} as Record<string, number>,
@@ -545,12 +639,14 @@ export const api = {
 
     await delay(400)
     const totalProyectos = mockProyectos.length
-    const inversionTotal = mockProyectos.reduce((sum, p) => sum + p.costo, 0)
+    // Calculate total from mockCostos
+    const inversionTotal = mockCostos.reduce((sum, c) => sum + c.valor, 0)
     const kmTotales = mockProyectos.reduce((sum, p) => sum + p.longitud, 0)
 
     const fases = mockProyectos.reduce(
       (acc, p) => {
-        acc[p.fase] = (acc[p.fase] || 0) + 1
+        const faseNombre = p.fase?.nombre || "Sin fase"
+        acc[faseNombre] = (acc[faseNombre] || 0) + 1
         return acc
       },
       {} as Record<string, number>,

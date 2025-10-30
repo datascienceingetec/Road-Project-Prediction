@@ -38,7 +38,7 @@ export function FunctionalUnitCard({
               color: isSelected ? "#E4002B" : "#1D428A",
             }}
           >
-            UF-{String(unidad.unidad_funcional).padStart(2, "0")}
+            UF-{String(unidad.numero).padStart(2, "0")}
           </h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
             {unidad.alcance.trim()}
