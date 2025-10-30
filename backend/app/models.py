@@ -1,258 +1,199 @@
+from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
 
-import sqlite3
-from flask import current_app
-from app.config import Config
+db = SQLAlchemy()
 
-def get_db():
-    try:
-        db_path = current_app.config["DATABASE"]
-    except RuntimeError:
-        db_path = Config.DATABASE
 
-    db = sqlite3.connect(db_path)
-    db.row_factory = sqlite3.Row
-    return db
-
-class Proyecto:
-    @staticmethod
-    def get_all():
-        db = get_db()
-        print(db)
-        proyectos = db.execute('SELECT * FROM proyectos ORDER BY created_at DESC').fetchall()
-        db.close()
-        return [dict(p) for p in proyectos]
+class Fase(db.Model):
+    """Tabla de fases del proyecto (Prefactibilidad, Factibilidad, Diseño Detallado)"""
+    __tablename__ = 'fases'
     
-    @staticmethod
-    def get_by_id(proyecto_id):
-        db = get_db()
-        proyecto = db.execute('SELECT * FROM proyectos WHERE id = ?', (proyecto_id,)).fetchone()
-        db.close()
-        return dict(proyecto) if proyecto else None
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(100), nullable=False, unique=True)
+    descripcion = Column(Text)
     
-    @staticmethod
-    def get_by_codigo(codigo):
-        db = get_db()
-        proyecto = db.execute('SELECT * FROM proyectos WHERE codigo = ?', (codigo,)).fetchone()
-        db.close()
-        return dict(proyecto) if proyecto else None
+    # Relationships
+    proyectos = relationship('Proyecto', back_populates='fase', lazy='dynamic')
+    items_requeridos = relationship('FaseItemRequerido', back_populates='fase', lazy='dynamic', cascade='all, delete-orphan')
     
-    @staticmethod
-    def create(data):
-        db = get_db()
-        cursor = db.execute('''
-            INSERT INTO proyectos (nombre, codigo, num_ufs, longitud, anio_inicio, duracion, fase, ubicacion, costo, lat_inicio, lng_inicio, lat_fin, lng_fin)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            data['nombre'], data['codigo'], data['num_ufs'], data['longitud'],
-            data['anio_inicio'], data['duracion'], data['fase'], data['ubicacion'],
-            data['costo'], data['lat_inicio'], data['lng_inicio'], data['lat_fin'], data['lng_fin']
-        ))
-        db.commit()
-        proyecto_id = cursor.lastrowid
-        db.close()
-        return proyecto_id
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nombre': self.nombre,
+            'descripcion': self.descripcion
+        }
+
+
+class Proyecto(db.Model):
+    """Tabla principal de proyectos viales"""
+    __tablename__ = 'proyectos'
     
-    @staticmethod
-    def update(proyecto_id, data):
-        db = get_db()
-        db.execute('''
-            UPDATE proyectos 
-            SET nombre=?, codigo=?, num_ufs=?, longitud=?, anio_inicio=?, duracion=?, fase=?, ubicacion=?, costo=?, lat_inicio=?, lng_inicio=?, lat_fin=?, lng_fin=?
-            WHERE id=?
-        ''', (
-            data['nombre'], data['codigo'], data['num_ufs'], data['longitud'],
-            data['anio_inicio'], data['duracion'], data['fase'], data['ubicacion'],
-            data['costo'], data['lat_inicio'], data['lng_inicio'], data['lat_fin'], data['lng_fin'],
-            proyecto_id
-        ))
-        db.commit()
-        db.close()
+    id = Column(Integer, primary_key=True)
+    codigo = Column(String(50), unique=True, nullable=False, index=True)
+    nombre = Column(String(200), nullable=False)
+    anio_inicio = Column(Integer)
+    duracion = Column(Integer)
+    longitud = Column(Float)
+    ubicacion = Column(String(200))
+    lat_inicio = Column(Float)
+    lng_inicio = Column(Float)
+    lat_fin = Column(Float)
+    lng_fin = Column(Float)
+    fase_id = Column(Integer, ForeignKey('fases.id'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
-    @staticmethod
-    def delete(proyecto_id):
-        db = get_db()
-        db.execute('DELETE FROM proyectos WHERE id = ?', (proyecto_id,))
-        db.commit()
-        db.close()
-
-
-class UnidadFuncional:
-    @staticmethod
-    def get_by_codigo(codigo):
-        db = get_db()
-        ufs = db.execute('SELECT * FROM unidad_funcional WHERE codigo = ? ORDER BY unidad_funcional', (codigo,)).fetchall()
-        db.close()
-        return [dict(uf) for uf in ufs]
+    # Relationships
+    fase = relationship('Fase', back_populates='proyectos')
+    unidades_funcionales = relationship('UnidadFuncional', back_populates='proyecto', lazy='dynamic', cascade='all, delete-orphan')
+    costos = relationship('CostoItem', back_populates='proyecto', lazy='dynamic', cascade='all, delete-orphan')
     
-    @staticmethod
-    def create(data):
-        db = get_db()
-        cursor = db.execute('''
-            INSERT INTO unidad_funcional (codigo, unidad_funcional, longitud_km, puentes_vehiculares_und, puentes_vehiculares_mt2,
-                                         puentes_peatonales_und, puentes_peatonales_mt2, tuneles_und, tuneles_km, alcance, zona, tipo_terreno)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            data['codigo'], data['unidad_funcional'], data['longitud_km'], data['puentes_vehiculares_und'],
-            data['puentes_vehiculares_mt2'], data['puentes_peatonales_und'], data['puentes_peatonales_mt2'],
-            data['tuneles_und'], data['tuneles_km'], data['alcance'], data['zona'], data['tipo_terreno']
-        ))
-        db.commit()
-        uf_id = cursor.lastrowid
-        db.close()
-        return uf_id
+    def to_dict(self, include_relations=False):
+        data = {
+            'id': self.id,
+            'codigo': self.codigo,
+            'nombre': self.nombre,
+            'anio_inicio': self.anio_inicio,
+            'duracion': self.duracion,
+            'longitud': self.longitud,
+            'ubicacion': self.ubicacion,
+            'lat_inicio': self.lat_inicio,
+            'lng_inicio': self.lng_inicio,
+            'lat_fin': self.lat_fin,
+            'lng_fin': self.lng_fin,
+            'fase_id': self.fase_id,
+            'fase': self.fase.to_dict() if self.fase else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+        
+        if include_relations:
+            data['unidades_funcionales'] = [uf.to_dict() for uf in self.unidades_funcionales]
+            data['costos'] = [c.to_dict() for c in self.costos]
+            data['costo_total'] = sum(c.valor for c in self.costos)
+        
+        return data
+
+
+class UnidadFuncional(db.Model):
+    """Unidades funcionales de un proyecto"""
+    __tablename__ = 'unidad_funcional'
     
-    @staticmethod
-    def delete(uf_id):
-        db = get_db()
-        db.execute('DELETE FROM unidad_funcional WHERE id = ?', (uf_id,))
-        db.commit()
-        db.close()
+    id = Column(Integer, primary_key=True)
+    proyecto_id = Column(Integer, ForeignKey('proyectos.id'), nullable=False)
+    numero = Column(Integer, nullable=False)
+    longitud_km = Column(Float)
+    puentes_vehiculares_und = Column(Integer, default=0)
+    puentes_vehiculares_mt2 = Column(Integer, default=0)
+    puentes_peatonales_und = Column(Integer, default=0)
+    puentes_peatonales_mt2 = Column(Integer, default=0)
+    tuneles_und = Column(Integer, default=0)
+    tuneles_km = Column(Float, default=0)
+    alcance = Column(Text)
+    zona = Column(String(100))
+    tipo_terreno = Column(String(100))
+    
+    # Relationships
+    proyecto = relationship('Proyecto', back_populates='unidades_funcionales')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'proyecto_id': self.proyecto_id,
+            'numero': self.numero,
+            'longitud_km': self.longitud_km,
+            'puentes_vehiculares_und': self.puentes_vehiculares_und,
+            'puentes_vehiculares_mt2': self.puentes_vehiculares_mt2,
+            'puentes_peatonales_und': self.puentes_peatonales_und,
+            'puentes_peatonales_mt2': self.puentes_peatonales_mt2,
+            'tuneles_und': self.tuneles_und,
+            'tuneles_km': self.tuneles_km,
+            'alcance': self.alcance,
+            'zona': self.zona,
+            'tipo_terreno': self.tipo_terreno
+        }
 
 
-class Item:
-    """Clase base para los modelos de ítems por fase (manejo CRUD genérico)."""
-
-    TABLE_NAME = None       # Debe definirse en la subclase
-    ITEM_COLUMNS = []       # Lista de columnas (excluye 'codigo')
-    ITEM_LABELS = {}        # Etiquetas legibles
-
-    @classmethod
-    def get_by_codigo(cls, codigo):
-        """Obtiene un registro por código."""
-        db = get_db()
-        query = f"SELECT * FROM {cls.TABLE_NAME} WHERE codigo = ?"
-        row = db.execute(query, (codigo,)).fetchone()
-        db.close()
-        return dict(row) if row else None
-
-    @classmethod
-    def create(cls, data):
-        """Crea un nuevo registro basado en data (dict)."""
-        db = get_db()
-        columns = ['codigo'] + cls.ITEM_COLUMNS
-        placeholders = ', '.join(['?'] * len(columns))
-        col_names = ', '.join(columns)
-        values = [data.get('codigo')] + [data.get(c, 0) for c in cls.ITEM_COLUMNS]
-
-        cursor = db.execute(
-            f"INSERT INTO {cls.TABLE_NAME} ({col_names}) VALUES ({placeholders})",
-            values
-        )
-        db.commit()
-        new_id = cursor.lastrowid
-        db.close()
-        return new_id
-
-    @classmethod
-    def update(cls, codigo, data):
-        """Actualiza un registro existente."""
-        db = get_db()
-        set_clause = ', '.join([f"{col} = ?" for col in cls.ITEM_COLUMNS])
-        values = [data.get(col, 0) for col in cls.ITEM_COLUMNS] + [codigo]
-
-        db.execute(
-            f"UPDATE {cls.TABLE_NAME} SET {set_clause} WHERE codigo = ?",
-            values
-        )
-        db.commit()
-        db.close()
-
-    @classmethod
-    def delete(cls, codigo):
-        """Elimina un registro por código."""
-        db = get_db()
-        db.execute(f"DELETE FROM {cls.TABLE_NAME} WHERE codigo = ?", (codigo,))
-        db.commit()
-        db.close()
+class ItemTipo(db.Model):
+    """Catálogo de tipos de ítems (Geología, Taludes, Pavimento, etc.)"""
+    __tablename__ = 'item_tipo'
+    
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(100), nullable=False, unique=True)
+    descripcion = Column(Text)
+    
+    # Relationships
+    costos = relationship('CostoItem', back_populates='item_tipo', lazy='dynamic')
+    fases_requeridas = relationship('FaseItemRequerido', back_populates='item_tipo', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nombre': self.nombre,
+            'descripcion': self.descripcion
+        }
 
 
-class ItemFaseI(Item):
-    """Model for Fase I - Prefactibilidad items (13 fields)"""
-    TABLE_NAME = "item_fase_i"
-    ITEM_COLUMNS = [
-        "transporte", "diseno_geometrico", "prefactibilidad_tuneles",
-        "geologia", "geotecnia", "hidrologia_hidraulica", "ambiental_social",
-        "predial", "riesgos_sostenibilidad", "evaluacion_economica",
-        "socioeconomica_financiera", "estructuras", "direccion_coordinacion"
-    ]
-    ITEM_LABELS = {
-        "transporte": "1 - TRANSPORTE",
-        "diseno_geometrico": "2 - DISEÑO GEOMÉTRICO",
-        "prefactibilidad_tuneles": "3 - PREFACTIBILIDAD TÚNELES",
-        "geologia": "4 - GEOLOGÍA",
-        "geotecnia": "5 - GEOTECNIA",
-        "hidrologia_hidraulica": "6 - HIDROLOGÍA E HIDRÁULICA",
-        "ambiental_social": "7 - AMBIENTAL Y SOCIAL",
-        "predial": "8 - PREDIAL",
-        "riesgos_sostenibilidad": "9 - RIESGOS Y SOSTENIBILIDAD",
-        "evaluacion_economica": "10 - EVALUACIÓN ECONÓMICA",
-        "socioeconomica_financiera": "11 - SOCIOECONÓMICA Y FINANCIERA",
-        "estructuras": "12 - ESTRUCTURAS",
-        "direccion_coordinacion": "13 - DIRECCIÓN Y COORDINACIÓN"
-    }
+class FaseItemRequerido(db.Model):
+    """Tabla de relación: qué ítems son requeridos en cada fase"""
+    __tablename__ = 'fase_item_requerido'
+    
+    id = Column(Integer, primary_key=True)
+    fase_id = Column(Integer, ForeignKey('fases.id'), nullable=False)
+    item_tipo_id = Column(Integer, ForeignKey('item_tipo.id'), nullable=False)
+    obligatorio = Column(Boolean, default=True)
+    descripcion = Column(Text)
+    
+    # Relationships
+    fase = relationship('Fase', back_populates='items_requeridos')
+    item_tipo = relationship('ItemTipo', back_populates='fases_requeridas')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fase_id': self.fase_id,
+            'item_tipo_id': self.item_tipo_id,
+            'obligatorio': self.obligatorio,
+            'descripcion': self.descripcion,
+            'fase': self.fase.to_dict() if self.fase else None,
+            'item_tipo': self.item_tipo.to_dict() if self.item_tipo else None
+        }
 
 
-class ItemFaseII(Item):
-    """Model for Fase II - Factibilidad items (13 fields, with aggregated subcomponents)"""
-    TABLE_NAME = "item_fase_ii"
-    ITEM_COLUMNS = [
-        "transporte", "topografia", "geologia", "taludes",
-        "hidrologia_hidraulica", "estructuras", "tuneles", "pavimento",
-        "predial", "ambiental_social", "costos_presupuestos",
-        "socioeconomica", "direccion_coordinacion"
-    ]
-    ITEM_LABELS = {
-        "transporte": "1 - TRANSPORTE",
-        "topografia": "2 - TOPOGRAFÍA",
-        "geologia": "3 - GEOLOGÍA",
-        "taludes": "4 - TALUDES",
-        "hidrologia_hidraulica": "5 - HIDROLOGÍA E HIDRÁULICA",
-        "estructuras": "6 - ESTRUCTURAS",
-        "tuneles": "7 - TÚNELES",
-        "pavimento": "8 - PAVIMENTO",
-        "predial": "9 - PREDIAL",
-        "ambiental_social": "10 - AMBIENTAL Y SOCIAL",
-        "costos_presupuestos": "11 - COSTOS Y PRESUPUESTOS",
-        "socioeconomica": "12 - SOCIOECONÓMICA",
-        "direccion_coordinacion": "13 - DIRECCIÓN Y COORDINACIÓN"
-    }
+class CostoItem(db.Model):
+    """Costos de cada ítem para un proyecto específico"""
+    __tablename__ = 'costo_item'
+    
+    id = Column(Integer, primary_key=True)
+    proyecto_id = Column(Integer, ForeignKey('proyectos.id'), nullable=False)
+    item_tipo_id = Column(Integer, ForeignKey('item_tipo.id'), nullable=False)
+    valor = Column(Float, nullable=False, default=0)
+    
+    # Relationships
+    proyecto = relationship('Proyecto', back_populates='costos')
+    item_tipo = relationship('ItemTipo', back_populates='costos')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'proyecto_id': self.proyecto_id,
+            'item_tipo_id': self.item_tipo_id,
+            'valor': self.valor,
+            'item_tipo': self.item_tipo.to_dict() if self.item_tipo else None
+        }
 
 
-class ItemFaseIII(Item):
-    """Model for Fase III - Diseños a detalle items (20 fields, parent headers skipped)"""
-    TABLE_NAME = "item_fase_iii"
-    ITEM_COLUMNS = [
-        "transporte", "informacion_geografica", "trazado_diseno_geometrico",
-        "seguridad_vial", "sistemas_inteligentes", "geologia", "hidrogeologia",
-        "suelos", "taludes", "pavimento", "socavacion", "estructuras", "tuneles",
-        "urbanismo_paisajismo", "predial", "impacto_ambiental", "cantidades",
-        "evaluacion_socioeconomica", "otros_manejo_redes", "direccion_coordinacion"
-    ]
-    ITEM_LABELS = {
-        "transporte": "1 - TRANSPORTE",
-        "informacion_geografica": "2.1 - INFORMACIÓN GEOGRÁFICA",
-        "trazado_diseno_geometrico": "2.2 - TRAZADO Y DISEÑO GEOMÉTRICO",
-        "seguridad_vial": "2.3 - SEGURIDAD VIAL",
-        "sistemas_inteligentes": "2.4 - SISTEMAS INTELIGENTES",
-        "geologia": "3.1 - GEOLOGÍA",
-        "hidrogeologia": "3.2 - HIDROGEOLOGÍA",
-        "suelos": "4 - SUELOS",
-        "taludes": "5 - TALUDES",
-        "pavimento": "6 - PAVIMENTO",
-        "socavacion": "7 - SOCAVACIÓN",
-        "estructuras": "8 - ESTRUCTURAS",
-        "tuneles": "9 - TÚNELES",
-        "urbanismo_paisajismo": "10 - URBANISMO Y PAISAJISMO",
-        "predial": "11 - PREDIAL",
-        "impacto_ambiental": "12 - IMPACTO AMBIENTAL",
-        "cantidades": "13 - CANTIDADES",
-        "evaluacion_socioeconomica": "14 - EVALUACIÓN SOCIOECONÓMICA",
-        "otros_manejo_redes": "15 - OTROS - MANEJO DE REDES",
-        "direccion_coordinacion": "16 - DIRECCIÓN Y COORDINACIÓN"
-    }
-
-ITEM_MODELS = {
-    'fase_i': ItemFaseI,
-    'fase_ii': ItemFaseII,
-    'fase_iii': ItemFaseIII
-}
+class AnualIncrement(db.Model):
+    """Incrementos anuales para ajustes de costos"""
+    __tablename__ = 'anual_increment'
+    
+    id = Column(Integer, primary_key=True)
+    ano = Column(Integer, nullable=False, unique=True)
+    valor = Column(Float, nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ano': self.ano,
+            'valor': self.valor
+        }
