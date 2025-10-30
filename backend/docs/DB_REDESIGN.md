@@ -71,6 +71,7 @@ PROYECTOS
   ├── longitud
   ├── ubicacion
   ├── lat_inicio / lng_inicio / lat_fin / lng_fin
+  ├── fase_id (FK → FASES.id)
   └── created_at
 
 FASES
@@ -108,7 +109,6 @@ FASE_ITEM_REQUERIDO
 COSTO_ITEM
   ├── id (PK)
   ├── proyecto_id (FK → PROYECTOS.id)
-  ├── fase_id (FK → FASES.id)
   ├── item_tipo_id (FK → ITEM_TIPO.id)
   └── valor (REAL)
 
@@ -132,8 +132,8 @@ VALUES ('Fase IV - Ejecución', 'Seguimiento de costos durante la construcción'
 ### Asociar costos a un proyecto
 
 ```sql
-INSERT INTO COSTO_ITEM (proyecto_id, fase_id, item_tipo_id, valor)
-VALUES (1, 4, 2, 250000000); -- proyecto 1, fase IV, ítem “Pavimento”
+INSERT INTO COSTO_ITEM (proyecto_id, item_tipo_id, valor)
+VALUES (1, 4, 250000000); -- proyecto 1, ítem “Pavimento”
 ```
 
 ### Buscar proyectos por fase
@@ -141,8 +141,7 @@ VALUES (1, 4, 2, 250000000); -- proyecto 1, fase IV, ítem “Pavimento”
 ```sql
 SELECT DISTINCT p.*
 FROM PROYECTOS p
-JOIN COSTO_ITEM c ON p.id = c.proyecto_id
-JOIN FASES f ON f.id = c.fase_id
+JOIN FASES f ON f.id = p.fase_id
 WHERE f.nombre = 'Fase II - Factibilidad';
 ```
 
@@ -154,6 +153,17 @@ FROM FASE_ITEM_REQUERIDO r
 JOIN ITEM_TIPO i ON i.id = r.item_tipo_id
 JOIN FASES f ON f.id = r.fase_id
 WHERE f.nombre = 'Fase II - Factibilidad';
+```
+
+### Calcular el costo total de un proyecto-fase
+
+```sql
+SELECT 
+    p.codigo,
+    SUM(c.valor) AS costo_total
+FROM PROYECTOS p
+JOIN COSTO_ITEM c ON p.id = c.proyecto_id
+GROUP BY p.codigo;
 ```
 
 ---
