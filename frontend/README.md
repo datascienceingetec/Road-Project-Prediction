@@ -6,24 +6,24 @@ Interfaz web moderna para la gestión y predicción de costos de proyectos viale
 
 ```bash
 # Instalar dependencias
-npm install
+pnpm install
 
 # Ejecutar en modo desarrollo
-npm run dev
+pnpm dev
 
 # Construir para producción
-npm run build
+pnpm build
 
 # Iniciar servidor de producción
-npm start
+pnpm start
 ```
 
 ### Sincronizar Cambios del Equipo
 
 ```bash
 git pull origin main
-npm install  # Instalar nuevas dependencias
-npm run dev  # Iniciar servidor de desarrollo
+pnpm install  # Instalar nuevas dependencias
+pnpm dev      # Iniciar servidor de desarrollo
 ```
 
 ---
