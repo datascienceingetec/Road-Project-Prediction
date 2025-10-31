@@ -273,18 +273,18 @@ export default function DashboardPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          proyecto.fase.includes("Fase I")
+                          proyecto.fase?.nombre.includes("Fase I")
                             ? "bg-yellow-100 text-yellow-800"
-                            : proyecto.fase.includes("Fase II")
+                            : proyecto.fase?.nombre.includes("Fase II")
                               ? "bg-blue-100 text-blue-800"
                               : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {proyecto.fase}
+                        {proyecto.fase?.nombre}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{formatNumber(proyecto.longitud)} km</td>
-                    <td className="px-6 py-4 text-gray-600">{formatCurrency(proyecto.costo)}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatCurrency(proyecto?.costo || 0)}</td>
                     <td className="px-6 py-4 text-gray-600">{proyecto.anio_inicio}</td>
                   </tr>
                 ))}

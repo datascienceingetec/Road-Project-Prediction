@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import { api, formatCurrency, formatNumber, type Proyecto } from "@/lib/api"
+import { api, type Proyecto, type Fase } from "@/lib/api"
 import { GoogleMap } from "@/components/google-map"
+import { ProjectsTable } from "@/components/projects-table"
 
 // Default map center (Colombia)
 const DEFAULT_CENTER = { lat: 4.5709, lng: -74.2973 }
@@ -11,15 +11,20 @@ const DEFAULT_ZOOM = 6
 
 const coordsCache = new Map<string, { lat: number; lng: number }>()
 
-export default function DashboardPage() {
+export default function HomePage() {
   const [projects, setProjects] = useState<Proyecto[]>([])
+  const [fases, setFases] = useState<Fase[]>([])
   const [selectedProject, setSelectedProject] = useState<Proyecto | null>(null)
   const [loading, setLoading] = useState(true)
 
   const loadProjects = async () => {
     try {
-      const data = await api.getProyectos()
-      setProjects(data)
+      const [proyectosData, fasesData] = await Promise.all([
+        api.getProyectos(),
+        api.getFases(),
+      ])
+      setProjects(proyectosData)
+      setFases(fasesData)
     } catch (error) {
       console.error("Error loading projects:", error)
     } finally {
@@ -128,67 +133,17 @@ export default function DashboardPage() {
         </div>
 
         {/* 📋 Projects table */}
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-gray-900 text-lg font-semibold">Proyectos</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Código</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Nombre</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Fase</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Longitud</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Ubicación</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {projects.map((project) => (
-                  <tr
-                    key={project.id}
-                    className={`hover:bg-gray-50 cursor-pointer ${
-                      selectedProject?.id === project.id ? "bg-blue-50" : ""
-                    }`}
-                    onClick={() => handleProjectClick(project)}
-                  >
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/proyectos/${project.codigo}`}
-                        className="font-medium text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {project.codigo}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {project.nombre}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          project.fase?.nombre?.includes("Fase I")
-                            ? "bg-yellow-100 text-yellow-800"
-                            : project.fase?.nombre?.includes("Fase II")
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {project.fase?.nombre || "Sin fase"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {formatNumber(project.longitud)} km
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {project.ubicacion || "N/A"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ProjectsTable
+          proyectos={projects}
+          fases={fases}
+          showActions={false}
+          showSearch={true}
+          showFilters={true}
+          showPagination={true}
+          itemsPerPage={5}
+          onRowClick={handleProjectClick}
+          selectedProjectId={selectedProject?.id}
+        />
       </main>
     </div>
   )
