@@ -1,0 +1,401 @@
+{
+  "info": {
+    "name": "Road Project Prediction API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+  },
+  "item": [
+    {
+      "name": "Proyectos",
+      "item": [
+        {
+          "name": "Obtener todos los proyectos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", ""]
+            }
+          }
+        },
+        {
+          "name": "Obtener proyecto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/id/{{id_proyecto}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "id", "{{id_proyecto}}"]
+            }
+          }
+        },
+        {
+          "name": "Obtener proyecto por código",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}"]
+            }
+          }
+        },
+        {
+          "name": "Crear proyecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"{{codigo_proyecto}}\",\n    \"nombre\": \"Nuevo Proyecto\",\n    \"fase_id\": {{id_fase}},\n    \"anio_inicio\": 2025,\n    \"duracion\": 12\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", ""]
+            }
+          }
+        },
+        {
+          "name": "Actualizar proyecto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Nombre Actualizado\",\n    \"duracion\": 24\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{id_proyecto}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{id_proyecto}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar proyecto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{id_proyecto}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{id_proyecto}}"]
+            }
+          }
+        },
+        {
+          "name": "Obtener unidades funcionales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales"]
+            }
+          }
+        },
+        {
+          "name": "Agregar unidad funcional",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"numero\": 1,\n    \"longitud_km\": 10.5,\n    \"puentes_vehiculares_und\": 2,\n    \"tuneles_km\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar unidad funcional",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales/{{id_unidad}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales", "{{id_unidad}}"]
+            }
+          }
+        },
+        {
+          "name": "Obtener costos del proyecto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar costos del proyecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"costos\": [\n        {\"item_tipo_id\": 1, \"valor\": 1000.50},\n        {\"item_tipo_id\": 2, \"valor\": 2000.75}\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fases",
+      "item": [
+        {
+          "name": "Obtener todas las fases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/fases/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "fases", ""]
+            }
+          }
+        },
+        {
+          "name": "Obtener fase por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/fases/{{id_fase}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "fases", "{{id_fase}}"]
+            }
+          }
+        },
+        {
+          "name": "Obtener items de una fase",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/fases/{{id_fase}}/items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "fases", "{{id_fase}}", "items"]
+            }
+          }
+        },
+        {
+          "name": "Crear fase",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Fase de Ejemplo\",\n    \"descripcion\": \"Descripción de la fase\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/fases/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "fases", ""]
+            }
+          }
+        },
+        {
+          "name": "Actualizar fase",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Fase Actualizada\",\n    \"descripcion\": \"Nueva descripción\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/fases/{{id_fase}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "fases", "{{id_fase}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Obtener todos los items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", ""]
+            }
+          }
+        },
+        {
+          "name": "Buscar items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/search?q=transporte",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", "search"],
+              "query": [
+                { "key": "q", "value": "transporte" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener item por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/{{id_item}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", "{{id_item}}"]
+            }
+          }
+        },
+        {
+          "name": "Crear item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Nuevo Item\",\n    \"descripcion\": \"Descripción del nuevo item\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", ""]
+            }
+          }
+        },
+        {
+          "name": "Actualizar item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Item Actualizado\",\n    \"descripcion\": \"Nueva descripción\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/{{id_item}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", "{{id_item}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/items/{{id_item}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "items", "{{id_item}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Enums",
+      "item": [
+        {
+          "name": "Obtener todos los enums",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/enums/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "enums", ""]
+            }
+          }
+        },
+        {
+          "name": "Obtener opciones de Alcance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/enums/alcance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "enums", "alcance"]
+            }
+          }
+        },
+        {
+          "name": "Obtener opciones de Zona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/enums/zona",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "enums", "zona"]
+            }
+          }
+        },
+        {
+          "name": "Obtener opciones de Tipo de Terreno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/enums/tipo-terreno",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "enums", "tipo-terreno"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "api_version", "value": "v1", "type": "string" },
+    { "key": "codigo_proyecto", "value": "COD123", "type": "string" },
+    { "key": "id_proyecto", "value": "1", "type": "string" },
+    { "key": "id_unidad", "value": "1", "type": "string" },
+    { "key": "id_fase", "value": "1", "type": "string" },
+    { "key": "id_item", "value": "1", "type": "string" }
+  ]
+}
