@@ -260,7 +260,7 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
     return await response.json()
   } catch (error) {
-    console.log("[v0] API Error:", error)
+    console.log("API Error:", error)
     return null
   }
 }
@@ -273,7 +273,7 @@ export const api = {
       const data = await fetchAPI("/proyectos")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getProyectos")
+      console.log("Usando datos mock para getProyectos")
     }
     await delay(500)
     return [...mockProyectos]
@@ -291,7 +291,7 @@ export const api = {
         return data
       }
     } catch (error) {
-      console.log("[v0] Usando datos mock para getProyecto")
+      console.log("Usando datos mock para getProyecto")
     }
     await delay(300)
     return mockProyectos.find((p) => p.codigo === codigo) || null
@@ -305,7 +305,7 @@ export const api = {
       })
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para createProyecto")
+      console.log("Usando datos mock para createProyecto")
     }
     await delay(500)
     const newProyecto: Proyecto = {
@@ -325,7 +325,7 @@ export const api = {
       })
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para updateProyecto")
+      console.log("Usando datos mock para updateProyecto")
     }
     await delay(500)
     const index = mockProyectos.findIndex((p) => p.codigo === codigo)
@@ -341,7 +341,7 @@ export const api = {
       })
       if (data !== null) return true
     } catch (error) {
-      console.log("[v0] Usando datos mock para deleteProyecto")
+      console.log("Usando datos mock para deleteProyecto")
     }
     await delay(500)
     const index = mockProyectos.findIndex((p) => p.id === id)
@@ -356,7 +356,7 @@ export const api = {
       const data = await fetchAPI(`/proyectos/${codigo}/unidades-funcionales`)
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getUnidadesFuncionales")
+      console.log("Usando datos mock para getUnidadesFuncionales")
     }
     await delay(300)
     const proyecto = mockProyectos.find((p) => p.codigo === codigo)
@@ -371,7 +371,7 @@ export const api = {
       })
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para createUnidadFuncional")
+      console.log("Usando datos mock para createUnidadFuncional")
     }
     await delay(400)
     const proyecto = mockProyectos.find((p) => p.codigo === codigo)
@@ -392,7 +392,7 @@ export const api = {
       })
       if (data !== null) return true
     } catch (error) {
-      console.log("[v0] Usando datos mock para deleteUnidadFuncional")
+      console.log("Usando datos mock para deleteUnidadFuncional")
     }
     await delay(300)
     const index = mockUnidadesFuncionales.findIndex((u) => u.id === id)
@@ -407,7 +407,7 @@ export const api = {
       const data = await fetchAPI(`/proyectos/${codigo}/costos`)
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getCostos")
+      console.log("Usando datos mock para getCostos")
     }
     await delay(300)
     const proyecto = mockProyectos.find((p) => p.codigo === codigo)
@@ -422,7 +422,7 @@ export const api = {
       })
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para createOrUpdateCostos")
+      console.log("Usando datos mock para createOrUpdateCostos")
     }
     await delay(400)
     return { created: costos.length, updated: 0 }
@@ -434,7 +434,7 @@ export const api = {
       const data = await fetchAPI("/fases")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getFases")
+      console.log("Usando datos mock para getFases")
     }
     await delay(300)
     return [
@@ -449,7 +449,7 @@ export const api = {
       const data = await fetchAPI(`/fases/${faseId}/items`)
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getFaseItems")
+      console.log("Usando datos mock para getFaseItems")
     }
     await delay(300)
     return []
@@ -461,7 +461,7 @@ export const api = {
       const data = await fetchAPI("/items")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getItemsTipo")
+      console.log("Usando datos mock para getItemsTipo")
     }
     await delay(300)
     return [
@@ -484,7 +484,7 @@ export const api = {
       const data = await fetchAPI("/enums")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getEnums")
+      console.log("Usando datos mock para getEnums")
     }
     await delay(300)
     return {
@@ -515,7 +515,7 @@ export const api = {
       const data = await fetchAPI("/enums/alcance")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getAlcanceOptions")
+      console.log("Usando datos mock para getAlcanceOptions")
     }
     await delay(300)
     return [
@@ -533,7 +533,7 @@ export const api = {
       const data = await fetchAPI("/enums/zona")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getZonaOptions")
+      console.log("Usando datos mock para getZonaOptions")
     }
     await delay(300)
     return [
@@ -547,7 +547,7 @@ export const api = {
       const data = await fetchAPI("/enums/tipo-terreno")
       if (data) return data
     } catch (error) {
-      console.log("[v0] Usando datos mock para getTipoTerrenoOptions")
+      console.log("Usando datos mock para getTipoTerrenoOptions")
     }
     await delay(300)
     return [
@@ -567,7 +567,7 @@ export const api = {
       })
       if (result) return result
     } catch (error) {
-      console.log("[v0] Usando datos mock para getPrediction")
+      console.log("Usando datos mock para getPrediction")
     }
     await delay(800)
     const baseCostPerKm = 6000000
@@ -593,6 +593,37 @@ export const api = {
 
   async predictCosto(data: PredictionRequest): Promise<PredictionResponse> {
     return this.getPrediction(data)
+  },
+
+  // Charts endpoints
+  async getValorPresenteCausacion(faseId?: number, alcance?: string, presentYear: number = 2025) {
+    try {
+      const params = new URLSearchParams()
+      if (faseId) params.append('fase_id', faseId.toString())
+      if (alcance) params.append('alcance', alcance)
+      params.append('present_year', presentYear.toString())
+      
+      const data = await fetchAPI(`/charts/valor-presente-causacion?${params.toString()}`)
+      if (data) return data
+    } catch (error) {
+      console.log("Error fetching valor presente causacion:", error)
+    }
+    return null
+  },
+
+  async getCausacionPorKm(faseId?: number, alcance?: string, presentYear: number = 2025) {
+    try {
+      const params = new URLSearchParams()
+      if (faseId) params.append('fase_id', faseId.toString())
+      if (alcance) params.append('alcance', alcance)
+      params.append('present_year', presentYear.toString())
+      
+      const data = await fetchAPI(`/charts/causacion-por-km?${params.toString()}`)
+      if (data) return data
+    } catch (error) {
+      console.log("Error fetching causacion por km:", error)
+    }
+    return null
   },
 
   // Estadísticas para el dashboard
@@ -635,7 +666,7 @@ export const api = {
         }
       }
     } catch (error) {
-      console.log("[v0] Usando datos mock para getEstadisticas")
+      console.log("Usando datos mock para getEstadisticas")
     }
 
     await delay(400)
