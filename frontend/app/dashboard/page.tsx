@@ -1,9 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import { api, formatCurrency, formatNumber, type Proyecto } from "@/lib/api"
-import { StatCard } from "@/components/stat-card"
+import { api, type Proyecto } from "@/lib/api"
 import { ValorPresenteChart } from "@/components/charts/valor-presente-chart"
 import { CausacionKmChart } from "@/components/charts/causacion-km-chart"
 import { StatsGrid } from "@/components/dashboard/stats-grid"
@@ -184,60 +182,6 @@ export default function DashboardPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-6">
               <CausacionKmChart faseId={selectedFase} alcance={selectedAlcance} presentYear={selectedYear} />
             </div>
-          </div>
-        </div>
-
-        {/* Recent Projects Table */}
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-gray-900 text-lg font-semibold">Proyectos Recientes</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Código</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Nombre</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Fase</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Longitud</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Costo</th>
-                  <th className="px-6 py-3 font-semibold text-gray-700">Año</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {estadisticas.proyectosRecientes.map((proyecto) => (
-                  <tr key={proyecto.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <Link href={`/proyectos/${proyecto.codigo}`} className="font-medium text-primary hover:underline">
-                        {proyecto.codigo}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{proyecto.nombre}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          proyecto.fase?.nombre.includes("Fase I")
-                            ? "bg-yellow-100 text-yellow-800"
-                            : proyecto.fase?.nombre.includes("Fase II")
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {proyecto.fase?.nombre}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{formatNumber(proyecto.longitud)} km</td>
-                    <td className="px-6 py-4 text-gray-600">{formatCurrency(proyecto?.costo || 0)}</td>
-                    <td className="px-6 py-4 text-gray-600">{proyecto.anio_inicio}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between p-4 border-t border-gray-200">
-            <Link href="/proyectos" className="text-sm text-primary hover:underline font-medium">
-              Ver todos los proyectos →
-            </Link>
           </div>
         </div>
       </main>
