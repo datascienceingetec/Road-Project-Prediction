@@ -124,7 +124,21 @@
 
 ---
 
-## 🔧 **I. Internos / Administrativos**
+## 📈 **I. Charts (Gráficos)**
+
+| Método | Ruta                                       | Descripción                                                    |
+| ------ | ------------------------------------------ | -------------------------------------------------------------- |
+| `GET`  | `/api/v1/charts/valor-presente-causacion`  | Datos para gráfico de dispersión: longitud vs costo VP        |
+| `GET`  | `/api/v1/charts/causacion-por-km`          | Estadísticas de causación promedio por km (heatmap)            |
+| `GET`  | `/api/v1/charts/health`                    | Health check del servicio de charts                            |
+
+**Query Parameters comunes:**
+- `fase_id` (opcional): ID de la fase para filtrar proyectos
+- `present_year` (opcional): Año presente para cálculo de valor presente. Default: `2025`
+
+---
+
+## 🔧 **J. Internos / Administrativos**
 
 | Método | Ruta                         | Descripción                          |
 | ------ | ---------------------------- | ------------------------------------ |

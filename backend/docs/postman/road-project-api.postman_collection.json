@@ -387,6 +387,84 @@
           }
         }
       ]
+    },
+    {
+      "name": "Charts",
+      "item": [
+        {
+          "name": "Valor Presente de Causación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/valor-presente-causacion?fase_id={{id_fase}}&present_year=2025",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "valor-presente-causacion"],
+              "query": [
+                { "key": "fase_id", "value": "{{id_fase}}", "description": "ID de la fase (opcional)" },
+                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" }
+              ]
+            },
+            "description": "Obtiene datos para gráfico de dispersión que muestra la relación entre longitud del proyecto y valor presente de causación de personal"
+          }
+        },
+        {
+          "name": "Valor Presente - Sin Filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/valor-presente-causacion",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "valor-presente-causacion"]
+            },
+            "description": "Obtiene datos de todos los proyectos sin filtrar por fase"
+          }
+        },
+        {
+          "name": "Causación por Kilómetro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/causacion-por-km?fase_id={{id_fase}}&present_year=2025",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "causacion-por-km"],
+              "query": [
+                { "key": "fase_id", "value": "{{id_fase}}", "description": "ID de la fase (opcional)" },
+                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" }
+              ]
+            },
+            "description": "Obtiene estadísticas de causación promedio por kilómetro, agrupadas por categoría (item) y tipo de alcance. Incluye datos para heatmap."
+          }
+        },
+        {
+          "name": "Causación por Km - Sin Filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/causacion-por-km",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "causacion-por-km"]
+            },
+            "description": "Obtiene datos de causación por km de todos los proyectos sin filtrar por fase"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "health"]
+            },
+            "description": "Verifica el estado del servicio de charts"
+          }
+        }
+      ]
     }
   ],
   "variable": [
