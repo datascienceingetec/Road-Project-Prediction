@@ -13,7 +13,7 @@ class AlcanceEnum(str, enum.Enum):
     REHABILITACION = "Rehabilitación"
     PUESTA_A_PUNTO = "Puesta a punto"
     CONSTRUCCION = "Construcción"
-    OPERACION_Y_MANTENIMIENTO = "Operación y mantenimiento"
+    OPERACION_Y_MANTENIMIENTO = "operacion y mantenimiento"
 
 
 class ZonaEnum(str, enum.Enum):
