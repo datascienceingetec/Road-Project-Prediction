@@ -122,14 +122,17 @@ export default function ProjectDetailPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap justify-start pt-2">
-            <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f8f9fa] border border-[#dee2e6] text-[#111418] text-sm font-bold leading-normal hover:bg-gray-100 transition-colors">
+            {/* <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f8f9fa] border border-[#dee2e6] text-[#111418] text-sm font-bold leading-normal hover:bg-gray-100 transition-colors">
               <span className="truncate">Exportar Reporte</span>
+            </button> */}
+            <button 
+                onClick={() => {
+                  setEditingUnit(null)
+                  setIsModalOpen(true)
+                }}
+              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal hover:bg-primary/90 transition-colors">
+              <span className="truncate">Nueva Unidad Funcional</span>
             </button>
-            <Link href={`/prediccion?proyecto=${id}`}>
-              <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal hover:bg-primary/90 transition-colors">
-                <span className="truncate">Nueva Predicción</span>
-              </button>
-            </Link>
           </div>
         </div>
       </section>
@@ -205,18 +208,6 @@ export default function ProjectDetailPage() {
             >
               Desglose de Costos
             </button>
-            {activeTab === "unidades" && (
-              <button
-                onClick={() => {
-                  setEditingUnit(null)
-                  setIsModalOpen(true)
-                }}
-                className="ml-auto p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Agregar Unidad Funcional"
-              >
-                <span className="material-symbols-outlined text-primary">add_circle</span>
-              </button>
-            )}
           </div>
 
           {/* Contenido de Tabs */}
