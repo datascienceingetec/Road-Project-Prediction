@@ -47,14 +47,15 @@ def get_valor_presente_causacion():
         fase_id = request.args.get('fase_id', type=int)
         alcance = request.args.get('alcance', type=str)
         present_year = int(request.args.get('present_year', 2025))
-        
+
         # Build query for projects
         query = db.session.query(
             Proyecto.id,
             Proyecto.codigo,
             Proyecto.nombre,
             Proyecto.anio_inicio,
-            Fase.nombre.label('fase_nombre')
+            Fase.nombre.label('fase_nombre'),
+            Proyecto.status.label('status')
         ).join(Fase, Proyecto.fase_id == Fase.id)
         
         # Filter by fase if provided
@@ -101,11 +102,15 @@ def get_valor_presente_causacion():
             ).scalar() or 0
             
             # Get first alcance (could aggregate differently if needed)
-            alcance = db.session.query(
+            alcance_row = db.session.query(
                 UnidadFuncional.alcance
             ).filter(
                 UnidadFuncional.proyecto_id == proyecto.id
             ).first()
+
+            alcance_value = None
+            if alcance_row and alcance_row[0]:
+                alcance_value = alcance_row[0].value  # Enum → string
             
             projects_data.append({
                 'codigo': proyecto.codigo,
@@ -116,7 +121,7 @@ def get_valor_presente_causacion():
                 'costo_total_vp': float(costo_vp),
                 'costo_millones': float(costo_vp / 1_000_000),
                 'unidades_funcionales': num_ufs,
-                'alcance': alcance[0].value if alcance and alcance[0] else None
+                'alcance': alcance_value
             })
         
         # Filter out projects with zero length for regression

@@ -7,6 +7,7 @@ import { api, type Proyecto, type UnidadFuncional, type CostoItem, type FaseItem
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
 import { GoogleMap } from "@/components/google-map"
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
+import { EditCostosModal } from "@/components/edit-costos-modal"
 
 export default function ProjectDetailPage() {
   const params = useParams()
@@ -20,6 +21,7 @@ export default function ProjectDetailPage() {
   const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null)
   const [editingUnit, setEditingUnit] = useState<UnidadFuncional | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCostosModalOpen, setIsCostosModalOpen] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -34,14 +36,16 @@ export default function ProjectDetailPage() {
       const unidadesData = await api.getUnidadesFuncionales(id)
       setUnidades(unidadesData)
 
-      const costosData = await api.getCostos(id)
-      setCostos(costosData)
-
-      // Obtener los items requeridos para la fase del proyecto
       if (proyectoData.fase_id) {
         const faseItemsData = await api.getFaseItems(proyectoData.fase_id)
         setFaseItems(faseItemsData)
+
+        const costosData = await api.getCostos(id)
+        const filteredCostos = costosData.filter((c) => faseItemsData.some((fi) => fi.item_tipo_id === c.item_tipo_id))
+        setCostos(filteredCostos)
       }
+
+
     }
 
     setLoading(false)
@@ -241,27 +245,42 @@ export default function ProjectDetailPage() {
             )}
 
             {activeTab === "costos" && (
-              <div className="p-4 space-y-3">
-                {faseItems.length > 0 ? (
-                  faseItems.map((item) => {
-                    // Buscar el costo correspondiente a este item
-                    const costo = costos.find((c) => c.item_tipo_id === item.item_tipo_id)
-                    return (
-                      <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-sm font-medium text-gray-700">
-                          {item.descripcion || item.item_tipo?.nombre || "Item desconocido"}
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {costo ? formatCurrency(costo.valor) : formatCurrency(0)}
-                        </span>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className="p-8 text-center text-gray-500">
-                    <p>No hay items definidos para esta fase</p>
+              <div className="flex flex-col h-full">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Items de la Fase</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{proyecto.fase?.nombre}</p>
                   </div>
-                )}
+                  <button
+                    onClick={() => setIsCostosModalOpen(true)}
+                    className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">edit</span>
+                    Editar Costos
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {faseItems.length > 0 ? (
+                    faseItems.map((item) => {
+                      // Buscar el costo correspondiente a este item
+                      const costo = costos.find((c) => c.item_tipo_id === item.item_tipo_id)
+                      return (
+                        <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100">
+                          <span className="text-sm font-medium text-gray-700">
+                            {item.descripcion || item.item_tipo?.nombre || "Item desconocido"}
+                          </span>
+                          <span className="text-sm font-bold text-gray-900">
+                            {costo ? formatCurrency(costo.valor) : formatCurrency(0)}
+                          </span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-gray-500">
+                      <p>No hay items definidos para esta fase</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -277,6 +296,15 @@ export default function ProjectDetailPage() {
         }}
         onSave={handleSaveUnit}
         codigoProyecto={id}
+      />
+
+      <EditCostosModal
+        isOpen={isCostosModalOpen}
+        onClose={() => setIsCostosModalOpen(false)}
+        onSave={loadData}
+        codigoProyecto={id}
+        faseItems={faseItems}
+        costosActuales={costos}
       />
     </main>
   )

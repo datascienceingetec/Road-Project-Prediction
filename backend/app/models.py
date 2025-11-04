@@ -2,7 +2,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum
+from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum, StatusEnum
 
 db = SQLAlchemy()
 
@@ -32,6 +32,7 @@ class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     
     id = Column(Integer, primary_key=True)
+    status = Column(SQLEnum(StatusEnum), default=StatusEnum.ACTIVE)
     codigo = Column(String(50), unique=True, nullable=False, index=True)
     nombre = Column(String(200), nullable=False)
     anio_inicio = Column(Integer)

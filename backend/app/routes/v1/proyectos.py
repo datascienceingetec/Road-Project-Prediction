@@ -53,16 +53,16 @@ def create_proyecto():
     db.session.add(proyecto)
     db.session.commit()
     
-    return jsonify({'id': proyecto.id, 'message': 'Proyecto creado', 'proyecto': proyecto.to_dict()}), 201
+    return jsonify({'codigo': proyecto.codigo, 'message': 'Proyecto creado', 'proyecto': proyecto.to_dict()}), 201
 
-@proyectos_bp.route('/<int:proyecto_id>', methods=['PUT'])
-def update_proyecto(proyecto_id):
+@proyectos_bp.route('/<codigo>', methods=['PUT'])
+def update_proyecto_by_codigo(codigo):
     data = request.get_json(silent=True) or {}
-    proyecto = Proyecto.query.get(proyecto_id)
-    
+    proyecto = Proyecto.query.filter_by(codigo=codigo).first()
+
     if not proyecto:
         return jsonify({'error': 'Proyecto no encontrado'}), 404
-    
+
     # Update fields
     if 'nombre' in data:
         proyecto.nombre = data['nombre']
@@ -86,7 +86,9 @@ def update_proyecto(proyecto_id):
         proyecto.lng_fin = data['lng_fin']
     if 'fase_id' in data:
         proyecto.fase_id = data['fase_id']
-    
+    if 'status' in data:
+        proyecto.status = data['status']
+
     db.session.commit()
     return jsonify({'message': 'Proyecto actualizado', 'proyecto': proyecto.to_dict()})
 
@@ -97,6 +99,8 @@ def delete_proyecto(proyecto_id):
         return jsonify({'error': 'Proyecto no encontrado'}), 404
     
     db.session.delete(proyecto)
+    UnidadFuncional.query.filter_by(proyecto_id=proyecto.id).delete()
+    CostoItem.query.filter_by(proyecto_id=proyecto.id).delete()
     db.session.commit()
     return jsonify({'message': 'Proyecto eliminado'})
 

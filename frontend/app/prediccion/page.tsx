@@ -1,62 +1,162 @@
 "use client"
 
-import { useState } from "react"
-import { api } from "@/lib/api"
+import { useState, useEffect } from "react"
+import { api, type Scenario, formatCurrency } from "@/lib/api"
+import { FunctionalUnitForm, type FunctionalUnitFormData } from "@/components/prediction/functional-unit-form"
+import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
+import { ScenarioManager } from "@/components/prediction/scenario-manager"
 
 export default function PrediccionPage() {
   const [loading, setLoading] = useState(false)
   const [prediction, setPrediction] = useState<any>(null)
+  const [predictionItems, setPredictionItems] = useState<ItemCosto[]>([])
+  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([])
+  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
 
   const [formData, setFormData] = useState({
     nombre: "",
-    codigo: "",
-    num_ufs: "",
-    longitud: "",
-    anio_inicio: "",
-    duracion: "",
     fase: "Fase I - Prefactibilidad",
     ubicacion: "",
   })
+
+  const [unidadesFuncionales, setUnidadesFuncionales] = useState<FunctionalUnitFormData[]>([
+    {
+      numero: 1,
+      longitud_km: 0,
+      puentes_vehiculares_und: 0,
+      puentes_vehiculares_mt2: 0,
+      puentes_peatonales_und: 0,
+      puentes_peatonales_mt2: 0,
+      tuneles_und: 0,
+      tuneles_km: 0,
+      alcance: "",
+      zona: "",
+      tipo_terreno: "",
+    },
+  ])
+
+  useEffect(() => {
+    loadScenarios()
+  }, [])
+
+  const loadScenarios = async () => {
+    const scenarios = await api.getScenarios()
+    setSavedScenarios(scenarios)
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleAddUnidadFuncional = () => {
+    setUnidadesFuncionales([
+      ...unidadesFuncionales,
+      {
+        numero: unidadesFuncionales.length + 1,
+        longitud_km: 0,
+        puentes_vehiculares_und: 0,
+        puentes_vehiculares_mt2: 0,
+        puentes_peatonales_und: 0,
+        puentes_peatonales_mt2: 0,
+        tuneles_und: 0,
+        tuneles_km: 0,
+        alcance: "",
+        zona: "",
+        tipo_terreno: "",
+      },
+    ])
+  }
+
+  const handleRemoveUnidadFuncional = (index: number) => {
+    if (unidadesFuncionales.length > 1) {
+      setUnidadesFuncionales(unidadesFuncionales.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleUpdateUnidadFuncional = (index: number, data: FunctionalUnitFormData) => {
+    const updated = [...unidadesFuncionales]
+    updated[index] = data
+    setUnidadesFuncionales(updated)
+  }
+
   const handlePredict = async () => {
     setLoading(true)
 
+    const totalLongitud = unidadesFuncionales.reduce((sum, uf) => sum + uf.longitud_km, 0)
+
     const predictionData = await api.predictCosto({
-      longitud: Number.parseFloat(formData.longitud),
-      num_ufs: Number.parseInt(formData.num_ufs),
-      duracion: Number.parseInt(formData.duracion),
+      longitud: totalLongitud,
+      num_ufs: unidadesFuncionales.length,
       fase: formData.fase,
       ubicacion: formData.ubicacion,
+      unidades_funcionales: unidadesFuncionales,
     })
 
     setPrediction(predictionData)
+    setPredictionItems(predictionData.items || [])
     setLoading(false)
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
+  const handleSaveScenario = async (nombre: string) => {
+    if (!prediction) return
+
+    const scenario = await api.saveScenario({
+      nombre,
+      proyecto_nombre: formData.nombre,
+      fase: formData.fase,
+      ubicacion: formData.ubicacion,
+      costo_total: prediction.costo_estimado,
+      num_ufs: unidadesFuncionales.length,
+      unidades_funcionales: unidadesFuncionales,
+      items: predictionItems,
+    })
+
+    setSavedScenarios([...savedScenarios, scenario])
+  }
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    await api.deleteScenario(scenarioId)
+    setSavedScenarios(savedScenarios.filter((s) => s.id !== scenarioId))
+    setSelectedScenarioIds(selectedScenarioIds.filter((id) => id !== scenarioId))
+  }
+
+  const handleCompareScenarios = (scenarioIds: string[]) => {
+    setSelectedScenarioIds(scenarioIds)
+    // TODO: Implement comparison visualization in chart
+    console.log("Comparing scenarios:", scenarioIds)
   }
 
   const isFormValid = () => {
-    return (
-      formData.nombre &&
-      formData.codigo &&
-      formData.num_ufs &&
-      formData.longitud &&
-      formData.anio_inicio &&
-      formData.duracion &&
-      formData.fase &&
-      formData.ubicacion
+    const hasBasicInfo = formData.nombre && formData.fase && formData.ubicacion
+    const hasValidUFs = unidadesFuncionales.every(
+      (uf) => uf.longitud_km > 0 && uf.alcance && uf.zona && uf.tipo_terreno
     )
+    return hasBasicInfo && hasValidUFs
+  }
+
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      fase: "Fase I - Prefactibilidad",
+      ubicacion: "",
+    })
+    setUnidadesFuncionales([
+      {
+        numero: 1,
+        longitud_km: 0,
+        puentes_vehiculares_und: 0,
+        puentes_vehiculares_mt2: 0,
+        puentes_peatonales_und: 0,
+        puentes_peatonales_mt2: 0,
+        tuneles_und: 0,
+        tuneles_km: 0,
+        alcance: "",
+        zona: "",
+        tipo_terreno: "",
+      },
+    ])
+    setPrediction(null)
+    setPredictionItems([])
   }
 
   return (
@@ -69,266 +169,187 @@ export default function PrediccionPage() {
           </h1>
         </div>
 
-        {/* Layout de Dos Columnas */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-4">
-          {/* Columna Izquierda: Formulario */}
-          <div className="lg:col-span-3 flex flex-col gap-6">
-            {/* Acordeón 1: Información General */}
-            <details className="flex flex-col rounded-xl border border-[#dee2e6] bg-white group" open>
-              <summary className="flex cursor-pointer items-center justify-between gap-6 p-4">
-                <p className="text-[#071d49] text-base font-bold leading-normal">Información General</p>
-                <span className="material-symbols-outlined text-[#111418] transition-transform group-open:rotate-180">
-                  expand_more
-                </span>
-              </summary>
-              <div className="border-t border-[#dee2e6] p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <label className="flex flex-col col-span-2">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Nombre del Proyecto</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. Autopista del Sol"
-                    value={formData.nombre}
-                    onChange={(e) => handleInputChange("nombre", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Código del Proyecto</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. PRY-2024-001"
-                    value={formData.codigo}
-                    onChange={(e) => handleInputChange("codigo", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Ubicación</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. Bogotá, Colombia"
-                    value={formData.ubicacion}
-                    onChange={(e) => handleInputChange("ubicacion", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Fase del Proyecto</p>
-                  <select
-                    className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 px-4 text-sm font-normal"
-                    value={formData.fase}
-                    onChange={(e) => handleInputChange("fase", e.target.value)}
-                  >
-                    <option value="Fase I - Prefactibilidad">Fase I - Prefactibilidad</option>
-                    <option value="Fase II - Factibilidad">Fase II - Factibilidad</option>
-                    <option value="Fase III - Diseños a Detalle">Fase III - Diseños a Detalle</option>
-                  </select>
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Año de Inicio</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. 2024"
-                    type="number"
-                    value={formData.anio_inicio}
-                    onChange={(e) => handleInputChange("anio_inicio", e.target.value)}
-                  />
-                </label>
-              </div>
-            </details>
+        {/* Layout Principal */}
+        <div className="flex flex-col gap-8 p-4">
+          {/* Información General */}
+          <details className="flex flex-col rounded-xl border border-[#dee2e6] bg-white group" open>
+            <summary className="flex cursor-pointer items-center justify-between gap-6 p-4">
+              <p className="text-[#071d49] text-base font-bold leading-normal">Información General</p>
+              <span className="material-symbols-outlined text-[#111418] transition-transform group-open:rotate-180">
+                expand_more
+              </span>
+            </summary>
+            <div className="border-t border-[#dee2e6] p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <label className="flex flex-col">
+                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Nombre del Proyecto</p>
+                <input
+                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
+                  placeholder="ej. Autopista del Sol"
+                  value={formData.nombre}
+                  onChange={(e) => handleInputChange("nombre", e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col">
+                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Fase del Proyecto</p>
+                <select
+                  className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 px-4 text-sm font-normal"
+                  value={formData.fase}
+                  onChange={(e) => handleInputChange("fase", e.target.value)}
+                >
+                  <option value="Fase I - Prefactibilidad">Fase I - Prefactibilidad</option>
+                  <option value="Fase II - Factibilidad">Fase II - Factibilidad</option>
+                  <option value="Fase III - Diseños a Detalle">Fase III - Diseños a Detalle</option>
+                </select>
+              </label>
+              <label className="flex flex-col">
+                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Ubicación</p>
+                <input
+                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
+                  placeholder="ej. Bogotá, Colombia"
+                  value={formData.ubicacion}
+                  onChange={(e) => handleInputChange("ubicacion", e.target.value)}
+                />
+              </label>
+            </div>
+          </details>
 
-            {/* Acordeón 2: Especificaciones Técnicas */}
-            <details className="flex flex-col rounded-xl border border-[#dee2e6] bg-white group">
-              <summary className="flex cursor-pointer items-center justify-between gap-6 p-4">
-                <p className="text-[#071d49] text-base font-bold leading-normal">Especificaciones Técnicas</p>
-                <span className="material-symbols-outlined text-[#111418] transition-transform group-open:rotate-180">
-                  expand_more
-                </span>
-              </summary>
-              <div className="border-t border-[#dee2e6] p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Longitud (km)</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. 50.5"
-                    type="number"
-                    step="0.1"
-                    value={formData.longitud}
-                    onChange={(e) => handleInputChange("longitud", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">
-                    Número de Unidades Funcionales
-                  </p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. 5"
-                    type="number"
-                    value={formData.num_ufs}
-                    onChange={(e) => handleInputChange("num_ufs", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col">
-                  <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Duración (años)</p>
-                  <input
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
-                    placeholder="ej. 3"
-                    type="number"
-                    value={formData.duracion}
-                    onChange={(e) => handleInputChange("duracion", e.target.value)}
-                  />
-                </label>
+          {/* Unidades Funcionales */}
+          <div className="flex flex-col rounded-xl border border-[#dee2e6] bg-white">
+            <div className="flex items-center justify-between p-4 border-b border-[#dee2e6]">
+              <div>
+                <p className="text-[#071d49] text-base font-bold leading-normal">Unidades Funcionales</p>
+                <p className="text-sm text-gray-600 mt-1">Detalle completo de cada unidad funcional del proyecto</p>
               </div>
-            </details>
-
-            {/* Acciones del Formulario */}
-            <div className="flex items-center justify-end gap-4 pt-4">
               <button
-                onClick={() =>
-                  setFormData({
-                    nombre: "",
-                    codigo: "",
-                    num_ufs: "",
-                    longitud: "",
-                    anio_inicio: "",
-                    duracion: "",
-                    fase: "Fase I - Prefactibilidad",
-                    ubicacion: "",
-                  })
-                }
-                className="px-6 py-3 rounded-lg text-sm font-semibold text-[#111418] bg-gray-200 hover:bg-gray-300 transition-colors"
+                onClick={handleAddUnidadFuncional}
+                className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
               >
-                Limpiar Formulario
+                <span className="material-symbols-outlined text-sm">add</span>
+                Agregar UF
               </button>
-              <button
-                onClick={handlePredict}
-                className="px-8 py-3 rounded-lg text-sm font-semibold text-white bg-[#e4002b] hover:bg-[#e4002b]/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!isFormValid() || loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                    Calculando...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined">calculate</span>
-                    Calcular Costo Estimado
-                  </>
-                )}
-              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              {unidadesFuncionales.map((uf, index) => (
+                <FunctionalUnitForm
+                  key={index}
+                  data={uf}
+                  onChange={(data) => handleUpdateUnidadFuncional(index, data)}
+                  onRemove={() => handleRemoveUnidadFuncional(index)}
+                  showRemoveButton={unidadesFuncionales.length > 1}
+                  unitNumber={index + 1}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Columna Derecha: Resultados */}
-          <div className="lg:col-span-2">
-            <div className="sticky top-28 bg-white rounded-xl border border-[#dee2e6] p-6 flex flex-col gap-6">
-              <h2 className="text-[#071d49] text-lg font-bold">Resultados de Predicción</h2>
+          {/* Acciones del Formulario */}
+          <div className="flex items-center justify-end gap-4">
+            <button
+              onClick={resetForm}
+              className="px-6 py-3 rounded-lg text-sm font-semibold text-[#111418] bg-gray-200 hover:bg-gray-300 transition-colors"
+            >
+              Limpiar Formulario
+            </button>
+            <button
+              onClick={handlePredict}
+              className="px-8 py-3 rounded-lg text-sm font-semibold text-white bg-[#e4002b] hover:bg-[#e4002b]/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isFormValid() || loading}
+            >
+              {loading ? (
+                <>
+                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  Calculando...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">calculate</span>
+                  Calcular Predicción
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Resultados de Predicción */}
+          {prediction && (
+            <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20 p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="material-symbols-outlined text-primary text-3xl">analytics</span>
+                <h2 className="text-[#071d49] text-2xl font-bold">Resultados de Predicción</h2>
+              </div>
 
               {/* Costo Total Estimado */}
-              <div className="bg-primary/10 rounded-lg p-6 text-center">
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center mb-6">
                 <p className="text-sm font-medium text-primary uppercase tracking-wider">Costo Total Estimado</p>
-                <p className="text-4xl font-extrabold text-primary mt-2">
-                  {prediction ? formatCurrency(prediction.costo_estimado) : "$0"}
+                <p className="text-5xl font-extrabold text-primary mt-3">
+                  {formatCurrency(prediction.costo_estimado)}
                 </p>
-                <p className="text-sm font-medium text-primary/70 mt-2">
-                  {prediction ? `${prediction.confianza}% Nivel de Confianza` : ""}
-                </p>
+                <div className="flex items-center justify-center gap-6 mt-4">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 uppercase">Costo por km</p>
+                    <p className="text-lg font-bold text-gray-700">{formatCurrency(prediction.costo_por_km)}</p>
+                  </div>
+                  <div className="h-8 w-px bg-gray-300"></div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 uppercase">Confianza</p>
+                    <p className="text-lg font-bold text-gray-700">{(prediction.confianza * 100).toFixed(0)}%</p>
+                  </div>
+                  <div className="h-8 w-px bg-gray-300"></div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 uppercase">Unidades Funcionales</p>
+                    <p className="text-lg font-bold text-gray-700">{unidadesFuncionales.length}</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Desglose de Costos */}
-              {prediction && (
-                <div>
-                  <h3 className="text-base font-bold text-[#111418] mb-4">Desglose de Costos</h3>
-
-                  {/* Gráfico de Dona */}
-                  <div className="flex justify-center items-center my-4 relative">
-                    <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 120 120">
-                      <circle cx="60" cy="60" fill="none" r="54" stroke="#e6e6e6" strokeWidth="12" />
-                      <circle
-                        className="opacity-70"
-                        cx="60"
-                        cy="60"
-                        fill="none"
-                        r="54"
-                        stroke="#E4002B"
-                        strokeDasharray="204"
-                        strokeDashoffset="61.2"
-                        strokeWidth="12"
-                      />
-                      <circle
-                        cx="60"
-                        cy="60"
-                        fill="none"
-                        r="54"
-                        stroke="#1D428A"
-                        strokeDasharray="204"
-                        strokeDashoffset="132.6"
-                        strokeWidth="12"
-                      />
-                      <circle
-                        cx="60"
-                        cy="60"
-                        fill="none"
-                        r="54"
-                        stroke="#6C757D"
-                        strokeDasharray="204"
-                        strokeDashoffset="173.4"
-                        strokeWidth="12"
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-[#071d49]">100%</span>
-                      <span className="text-xs text-[#6c757d]">Total</span>
-                    </div>
-                  </div>
-
-                  {/* Leyenda */}
-                  <ul className="space-y-3">
-                    <li className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="size-3 rounded-full bg-primary" />
-                        <span className="font-medium text-[#111418]">Materiales</span>
-                      </div>
-                      <span className="font-semibold text-[#111418]">
-                        {formatCurrency(prediction.costo_estimado * 0.45)} (45%)
-                      </span>
-                    </li>
-                    <li className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="size-3 rounded-full bg-[#e4002b] opacity-70" />
-                        <span className="font-medium text-[#111418]">Mano de Obra</span>
-                      </div>
-                      <span className="font-semibold text-[#111418]">
-                        {formatCurrency(prediction.costo_estimado * 0.35)} (35%)
-                      </span>
-                    </li>
-                    <li className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="size-3 rounded-full bg-[#6c757d]" />
-                        <span className="font-medium text-[#111418]">Equipos y Otros</span>
-                      </div>
-                      <span className="font-semibold text-[#111418]">
-                        {formatCurrency(prediction.costo_estimado * 0.2)} (20%)
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              )}
-
-              {/* Acciones de Resultados */}
-              {prediction && (
-                <div className="flex items-center gap-4 border-t border-[#dee2e6] pt-6 mt-2">
-                  <button className="w-full text-center px-4 py-3 rounded-lg text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined !text-base">save</span>
-                    Guardar Predicción
-                  </button>
-                  <button className="w-full text-center px-4 py-3 rounded-lg text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined !text-base">picture_as_pdf</span>
-                    Exportar PDF
-                  </button>
-                </div>
-              )}
+              {/* Tabla de Items */}
+              <PredictionResultsTable items={predictionItems} loading={loading} />
             </div>
-          </div>
+          )}
+
+          {/* Gestión de Escenarios */}
+          <ScenarioManager
+            currentScenario={
+              prediction
+                ? {
+                    proyecto_nombre: formData.nombre,
+                    fase: formData.fase,
+                    ubicacion: formData.ubicacion,
+                    costo_total: prediction.costo_estimado,
+                    num_ufs: unidadesFuncionales.length,
+                  }
+                : undefined
+            }
+            savedScenarios={savedScenarios}
+            onSaveScenario={handleSaveScenario}
+            onCompareScenarios={handleCompareScenarios}
+            onDeleteScenario={handleDeleteScenario}
+          />
+
+          {/* Nota informativa sobre comparación */}
+          {selectedScenarioIds.length > 0 && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <span className="material-symbols-outlined text-blue-600 text-2xl">info</span>
+                <div>
+                  <h3 className="text-blue-900 font-bold text-lg mb-2">Escenarios Seleccionados para Comparación</h3>
+                  <p className="text-blue-800 text-sm">
+                    Has seleccionado {selectedScenarioIds.length} escenario(s) para comparar. Los escenarios
+                    seleccionados se resaltarán en la gráfica de valor presente de la causación en el dashboard.
+                  </p>
+                  <button
+                    onClick={() => {
+                      // TODO: Navigate to dashboard with selected scenarios
+                      console.log("Navigate to dashboard with scenarios:", selectedScenarioIds)
+                    }}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">dashboard</span>
+                    Ver Comparación en Dashboard
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>

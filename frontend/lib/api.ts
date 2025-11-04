@@ -27,6 +27,7 @@ export interface Proyecto {
   lat_fin: number | null
   lng_fin: number | null
   costo?: number
+  status?: string
   created_at: string
 }
 
@@ -79,6 +80,7 @@ export interface EnumsCatalog {
   alcance: EnumOption[]
   zona: EnumOption[]
   tipo_terreno: EnumOption[]
+  status: EnumOption[]
 }
 
 export interface PredictionRequest {
@@ -87,12 +89,42 @@ export interface PredictionRequest {
   fase: string
   ubicacion: string
   tipo_terreno?: string
+  unidades_funcionales?: Array<{
+    numero: number
+    longitud_km: number
+    alcance: string
+    zona: string
+    tipo_terreno: string
+    puentes_vehiculares_und: number
+    puentes_vehiculares_mt2: number
+    puentes_peatonales_und: number
+    puentes_peatonales_mt2: number
+    tuneles_und: number
+    tuneles_km: number
+  }>
 }
 
 export interface PredictionResponse {
   costo_estimado: number
   costo_por_km: number
   confianza: number
+  items?: Array<{
+    item: string
+    causacion_estimada: number
+  }>
+}
+
+export interface Scenario {
+  id: string
+  nombre: string
+  proyecto_nombre: string
+  fase: string
+  ubicacion: string
+  costo_total: number
+  fecha_creacion: string
+  num_ufs: number
+  unidades_funcionales?: any[]
+  items?: any[]
 }
 
 // Datos de ejemplo basados en las respuestas reales
@@ -334,6 +366,25 @@ export const api = {
     return mockProyectos[index]
   },
 
+  async changeStatusProyecto(id: number, status: "active" | "inactive"): Promise<boolean> {
+    try {
+      const proyecto = mockProyectos.find((p) => p.id === id)
+      if (!proyecto) return false
+      const data = await fetchAPI(`/proyectos/${proyecto.codigo}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      })
+      if (data) return true
+    } catch (error) {
+      console.log("Usando datos mock para changeStatusProyecto")
+    }
+    await delay(500)
+    const index = mockProyectos.findIndex((p) => p.id === id)
+    if (index === -1) return false
+    mockProyectos[index].status = status
+    return true
+  },
+  
   async deleteProyecto(id: number): Promise<boolean> {
     try {
       const data = await fetchAPI(`/proyectos/${id}`, {
@@ -507,6 +558,10 @@ export const api = {
         { value: "Montañoso", label: "Montañoso" },
         { value: "Escarpado", label: "Escarpado" },
       ],
+      status: [
+        { value: "active", label: "Activo" },
+        { value: "inactive", label: "Inactivo" },
+      ],
     }
   },
 
@@ -525,6 +580,20 @@ export const api = {
       { value: "Rehabilitación", label: "Rehabilitación" },
       { value: "Puesta a punto", label: "Puesta a punto" },
       { value: "Construcción", label: "Construcción" },
+    ]
+  },
+
+  async getStatusOptions(): Promise<EnumOption[]> {
+    try {
+      const data = await fetchAPI("/enums/status")
+      if (data) return data
+    } catch (error) {
+      console.log("Usando datos mock para getStatusOptions")
+    }
+    await delay(300)
+    return [
+      { value: "active", label: "Activo" },
+      { value: "inactive", label: "Inactivo" },
     ]
   },
 
@@ -584,15 +653,93 @@ export const api = {
     const costoEstimado = Math.round(baseCostPerKm * data.longitud * multiplier)
     const costoPorKm = Math.round(costoEstimado / data.longitud)
 
+    // Generate mock items based on fase
+    const itemsBase = [
+      "Ambiental Social",
+      "Costos Presupuestos",
+      "Dirección Coordinación",
+      "Estructuras",
+      "Geología",
+      "Pavimento",
+      "Predial",
+      "Taludes",
+      "Topografía",
+      "Túneles",
+    ]
+
+    const items = itemsBase.map((item) => ({
+      item,
+      causacion_estimada: Math.round(costoEstimado * (0.05 + Math.random() * 0.15)),
+    }))
+
     return {
       costo_estimado: costoEstimado,
       costo_por_km: costoPorKm,
       confianza: 0.85,
+      items,
     }
   },
 
   async predictCosto(data: PredictionRequest): Promise<PredictionResponse> {
     return this.getPrediction(data)
+  },
+
+  // Scenarios
+  async getScenarios(): Promise<Scenario[]> {
+    try {
+      const data = await fetchAPI("/scenarios")
+      if (data) return data
+    } catch (error) {
+      console.log("Usando datos mock para getScenarios")
+    }
+    await delay(300)
+    // Return from localStorage if available
+    const stored = localStorage.getItem("prediction_scenarios")
+    return stored ? JSON.parse(stored) : []
+  },
+
+  async saveScenario(scenario: Omit<Scenario, "id" | "fecha_creacion">): Promise<Scenario> {
+    try {
+      const data = await fetchAPI("/scenarios", {
+        method: "POST",
+        body: JSON.stringify(scenario),
+      })
+      if (data) return data
+    } catch (error) {
+      console.log("Usando datos mock para saveScenario")
+    }
+    await delay(300)
+    // Save to localStorage
+    const newScenario: Scenario = {
+      ...scenario,
+      id: `scenario_${Date.now()}`,
+      fecha_creacion: new Date().toISOString(),
+    }
+    const stored = localStorage.getItem("prediction_scenarios")
+    const scenarios: Scenario[] = stored ? JSON.parse(stored) : []
+    scenarios.push(newScenario)
+    localStorage.setItem("prediction_scenarios", JSON.stringify(scenarios))
+    return newScenario
+  },
+
+  async deleteScenario(scenarioId: string): Promise<boolean> {
+    try {
+      const data = await fetchAPI(`/scenarios/${scenarioId}`, {
+        method: "DELETE",
+      })
+      if (data) return true
+    } catch (error) {
+      console.log("Usando datos mock para deleteScenario")
+    }
+    await delay(300)
+    // Delete from localStorage
+    const stored = localStorage.getItem("prediction_scenarios")
+    if (stored) {
+      const scenarios: Scenario[] = JSON.parse(stored)
+      const filtered = scenarios.filter((s) => s.id !== scenarioId)
+      localStorage.setItem("prediction_scenarios", JSON.stringify(filtered))
+    }
+    return true
   },
 
   // Charts endpoints

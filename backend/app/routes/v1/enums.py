@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from app.enums import ENUMS_CATALOG, AlcanceEnum, ZonaEnum, TipoTerrenoEnum, get_enum_values
+from app.enums import ENUMS_CATALOG, AlcanceEnum, ZonaEnum, TipoTerrenoEnum, StatusEnum, get_enum_values
 
 enums_bp = Blueprint("enums_v1", __name__)
 
@@ -22,3 +22,8 @@ def get_zona_options():
 def get_tipo_terreno_options():
     """Get all Tipo Terreno options"""
     return jsonify(get_enum_values(TipoTerrenoEnum))
+
+@enums_bp.route('/status', methods=['GET'])
+def get_status_options():
+    """Get all Status options"""
+    return jsonify(get_enum_values(StatusEnum))

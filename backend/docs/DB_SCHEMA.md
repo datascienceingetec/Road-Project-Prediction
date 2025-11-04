@@ -19,6 +19,7 @@ erDiagram
         REAL lat_fin "Latitud del fin"
         REAL lng_fin "Longitud del fin"
         INTEGER fase_id FK "Referencia a la fase del proyecto"
+        TEXT status "Estado del proyecto (activo, inactivo)"
         TIMESTAMP created_at "Fecha de creación del registro"
     }
 

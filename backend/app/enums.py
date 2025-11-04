@@ -30,15 +30,20 @@ class TipoTerrenoEnum(str, enum.Enum):
     ESCARPADO = "Escarpado"
 
 
+class StatusEnum(str, enum.Enum):
+    """Status of the project"""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
 # Helper function to get enum values as list of dicts
 def get_enum_values(enum_class):
     """Returns enum values as a list of dicts with value and label"""
     return [{"value": item.value, "label": item.value} for item in enum_class]
-
 
 # Export all enum values for API
 ENUMS_CATALOG = {
     "alcance": get_enum_values(AlcanceEnum),
     "zona": get_enum_values(ZonaEnum),
     "tipo_terreno": get_enum_values(TipoTerrenoEnum),
+    "status": get_enum_values(StatusEnum),
 }
