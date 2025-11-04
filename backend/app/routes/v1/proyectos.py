@@ -113,45 +113,6 @@ def get_unidades_funcionales(codigo):
     ufs = UnidadFuncional.query.filter_by(proyecto_id=proyecto.id).order_by(UnidadFuncional.numero).all()
     return jsonify([uf.to_dict() for uf in ufs]), 200
 
-@proyectos_bp.route('/<codigo>/unidades-funcionales', methods=['POST'])
-def create_unidad_funcional(codigo):
-    proyecto = Proyecto.query.filter_by(codigo=codigo).first()
-    if not proyecto:
-        return jsonify({'error': f'Proyecto {codigo} no encontrado'}), 404
-    
-    data = request.get_json(silent=True) or {}
-    
-    uf = UnidadFuncional(
-        proyecto_id=proyecto.id,
-        numero=data.get('numero', 1),
-        longitud_km=data.get('longitud_km'),
-        puentes_vehiculares_und=data.get('puentes_vehiculares_und', 0),
-        puentes_vehiculares_mt2=data.get('puentes_vehiculares_mt2', 0),
-        puentes_peatonales_und=data.get('puentes_peatonales_und', 0),
-        puentes_peatonales_mt2=data.get('puentes_peatonales_mt2', 0),
-        tuneles_und=data.get('tuneles_und', 0),
-        tuneles_km=data.get('tuneles_km', 0),
-        alcance=data.get('alcance'),
-        zona=data.get('zona'),
-        tipo_terreno=data.get('tipo_terreno')
-    )
-    db.session.add(uf)
-    db.session.commit()
-    
-    return jsonify({'id': uf.id, 'message': f'Unidad funcional creada para proyecto {codigo}', 'unidad_funcional': uf.to_dict()}), 201
-
-@proyectos_bp.route('/<codigo>/unidades-funcionales/<int:uf_id>', methods=['DELETE'])
-def delete_unidad_funcional(codigo, uf_id):
-    uf = UnidadFuncional.query.get(uf_id)
-    if not uf:
-        return jsonify({'error': 'Unidad funcional no encontrada'}), 404
-    
-    db.session.delete(uf)
-    db.session.commit()
-    return jsonify({'message': f'Unidad funcional {uf_id} eliminada del proyecto {codigo}'}), 200
-
-# New endpoints for managing costs (items) with normalized schema
-
 @proyectos_bp.route('/<codigo>/costos', methods=['GET'])
 def get_costos(codigo):
     """Get all costs for a project"""
