@@ -10,7 +10,7 @@ interface EditFunctionalUnitModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: () => void
-  codigoProyecto: string
+  proyectoId: number
 }
 
 export function EditFunctionalUnitModal({
@@ -18,7 +18,7 @@ export function EditFunctionalUnitModal({
   isOpen,
   onClose,
   onSave,
-  codigoProyecto,
+  proyectoId,
 }: EditFunctionalUnitModalProps) {
   const [formData, setFormData] = useState<Partial<UnidadFuncional>>({})
   const [loading, setLoading] = useState(false)
@@ -46,7 +46,7 @@ export function EditFunctionalUnitModal({
       setFormData(unidad)
     } else {
       setFormData({
-        proyecto_id: 0,
+        proyecto_id: proyectoId,
         numero: 1,
         longitud_km: 0,
         puentes_vehiculares_und: 0,
@@ -60,7 +60,7 @@ export function EditFunctionalUnitModal({
         tipo_terreno: tipoTerrenoOptions[0]?.value || "",
       })
     }
-  }, [unidad, codigoProyecto, alcanceOptions, zonaOptions, tipoTerrenoOptions])
+  }, [unidad, proyectoId, alcanceOptions, zonaOptions, tipoTerrenoOptions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,11 +68,10 @@ export function EditFunctionalUnitModal({
 
     try {
       if (unidad) {
-        // Actualizar (por ahora solo creamos nuevas)
-        await api.createUnidadFuncional(codigoProyecto, formData as Omit<UnidadFuncional, "id" | "proyecto_id">)
+        await api.updateUnidadFuncional(unidad.id, formData as Partial<UnidadFuncional>)
       } else {
-        // Crear nueva
-        await api.createUnidadFuncional(codigoProyecto, formData as Omit<UnidadFuncional, "id" | "proyecto_id">)
+        
+        await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
       }
       onSave()
       onClose()

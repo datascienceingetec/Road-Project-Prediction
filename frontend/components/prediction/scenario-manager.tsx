@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { formatCurrency } from "@/lib/api"
+import { formatCurrency } from "@/lib/utils"
 
 export interface Scenario {
   id: string

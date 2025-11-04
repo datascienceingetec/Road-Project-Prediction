@@ -1,6 +1,6 @@
 "use client"
 
-import { formatCurrency } from "@/lib/api"
+import { formatCurrency } from "@/lib/utils"
 
 export interface ItemCosto {
   item: string

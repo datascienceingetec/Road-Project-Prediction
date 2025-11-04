@@ -1,7 +1,7 @@
 "use client"
 
 import { StatCard } from "@/components/stat-card"
-import { formatCurrency, formatNumber } from "@/lib/api"
+import { formatCurrency, formatNumber } from "@/lib/utils"
 
 interface StatsGridProps {
   totalProyectos: number

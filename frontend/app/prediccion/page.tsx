@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Scenario, formatCurrency } from "@/lib/api"
+import { api, type Scenario } from "@/lib/api"
+import { formatCurrency } from "@/lib/utils"
 import { FunctionalUnitForm, type FunctionalUnitFormData } from "@/components/prediction/functional-unit-form"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
 import { ScenarioManager } from "@/components/prediction/scenario-manager"
@@ -82,13 +83,11 @@ export default function PrediccionPage() {
   const handlePredict = async () => {
     setLoading(true)
 
-    const totalLongitud = unidadesFuncionales.reduce((sum, uf) => sum + uf.longitud_km, 0)
-
     const predictionData = await api.predictCosto({
-      longitud: totalLongitud,
-      num_ufs: unidadesFuncionales.length,
+      proyecto_nombre: formData.nombre,
       fase: formData.fase,
       ubicacion: formData.ubicacion,
+      num_ufs: unidadesFuncionales.length,
       unidades_funcionales: unidadesFuncionales,
     })
 

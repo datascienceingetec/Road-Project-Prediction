@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { formatCurrency } from "@/lib/utils"
 import { type FaseItemRequerido, type CostoItem, api } from "@/lib/api"
 
 interface EditCostosModalProps {
@@ -70,15 +71,6 @@ export function EditCostosModal({
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
   }
 
   const totalCostos = Object.values(costos).reduce((sum, valor) => sum + valor, 0)

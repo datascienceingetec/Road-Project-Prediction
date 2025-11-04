@@ -7,6 +7,7 @@ interface FunctionalUnitCardProps {
   isSelected: boolean
   onClick: () => void
   onEdit: () => void
+  onDelete: () => void
 }
 
 export function FunctionalUnitCard({
@@ -14,6 +15,7 @@ export function FunctionalUnitCard({
   isSelected,
   onClick,
   onEdit,
+  onDelete,
 }: FunctionalUnitCardProps) {
   return (
     <div
@@ -44,16 +46,26 @@ export function FunctionalUnitCard({
             {unidad.alcance.trim()}
           </p>
         </div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit()
-          }}
-          className="flex items-center gap-1 text-gray-500 hover:text-[#1D428A] transition-colors"
-        >
-          <span className="material-symbols-outlined text-sm">edit</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+            className="flex items-center gap-1 text-gray-500 hover:text-[#1D428A] transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">edit</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="flex items-center gap-1 text-gray-500 hover:text-[#1D428A] transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">delete</span>
+          </button>
+        </div>
       </div>
 
       {/* Data Grid */}

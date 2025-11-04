@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { formatCurrency } from "@/lib/utils"
 import { api, type Proyecto, type UnidadFuncional, type CostoItem, type FaseItemRequerido } from "@/lib/api"
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
 import { GoogleMap } from "@/components/google-map"
@@ -11,7 +12,7 @@ import { EditCostosModal } from "@/components/edit-costos-modal"
 
 export default function ProjectDetailPage() {
   const params = useParams()
-  const id = params.id as string
+  const codigo = params.codigo as string
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
   const [unidades, setUnidades] = useState<UnidadFuncional[]>([])
   const [costos, setCostos] = useState<CostoItem[]>([])
@@ -25,22 +26,22 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     loadData()
-  }, [id])
+  }, [codigo])
 
   const loadData = async () => {
     setLoading(true)
-    const proyectoData = await api.getProyecto(id)
+    const proyectoData = await api.getProyecto(codigo)
     setProyecto(proyectoData)
 
     if (proyectoData) {
-      const unidadesData = await api.getUnidadesFuncionales(id)
+      const unidadesData = await api.getUnidadesFuncionales(codigo)
       setUnidades(unidadesData)
 
       if (proyectoData.fase_id) {
         const faseItemsData = await api.getFaseItems(proyectoData.fase_id)
         setFaseItems(faseItemsData)
 
-        const costosData = await api.getCostos(id)
+        const costosData = await api.getCostos(codigo)
         const filteredCostos = costosData.filter((c) => faseItemsData.some((fi) => fi.item_tipo_id === c.item_tipo_id))
         setCostos(filteredCostos)
       }
@@ -54,6 +55,13 @@ export default function ProjectDetailPage() {
   const handleEditUnit = (unidad: UnidadFuncional) => {
     setEditingUnit(unidad)
     setIsModalOpen(true)
+  }
+
+  const handleDeleteUnit = (unidad: UnidadFuncional) => {
+    if (confirm("¿Estás seguro de eliminar esta unidad funcional?")) {
+      api.deleteUnidadFuncional(unidad.id)
+      loadData()
+    }
   }
 
   const handleSaveUnit = () => {
@@ -83,15 +91,6 @@ export default function ProjectDetailPage() {
         </div>
       </div>
     )
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
   }
 
   const mapMarkers = unidades.map((unidad, index) => ({
@@ -225,6 +224,7 @@ export default function ProjectDetailPage() {
                     isSelected={selectedUnitIndex === index}
                     onClick={() => setSelectedUnitIndex(index === selectedUnitIndex ? null : index)}
                     onEdit={() => handleEditUnit(unidad)}
+                    onDelete={() => handleDeleteUnit(unidad)}
                   />
                 ))}
                 {unidades.length === 0 && (
@@ -295,14 +295,14 @@ export default function ProjectDetailPage() {
           setEditingUnit(null)
         }}
         onSave={handleSaveUnit}
-        codigoProyecto={id}
+        proyectoId={proyecto.id}
       />
 
       <EditCostosModal
         isOpen={isCostosModalOpen}
         onClose={() => setIsCostosModalOpen(false)}
         onSave={loadData}
-        codigoProyecto={id}
+        codigoProyecto={codigo}
         faseItems={faseItems}
         costosActuales={costos}
       />

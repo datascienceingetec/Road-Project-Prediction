@@ -9,19 +9,19 @@ import ProjectForm, { type ProjectFormData } from "@/components/project-form"
 export default function EditarProyectoPage() {
   const params = useParams()
   const router = useRouter()
-  const id = params.id as string
+  const codigo = params.codigo as string
 
   const [loading, setLoading] = useState(true)
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
 
   useEffect(() => {
     loadProyecto()
-  }, [id])
+  }, [codigo])
 
   const loadProyecto = async () => {
     setLoading(true)
     try {
-      const data = await api.getProyecto(id)
+      const data = await api.getProyecto(codigo)
       setProyecto(data)
     } catch (error) {
       console.error("Error loading project:", error)
@@ -32,9 +32,9 @@ export default function EditarProyectoPage() {
 
   const handleSubmit = async (data: ProjectFormData) => {
     try {
-      await api.updateProyecto(id, data as any)
+      await api.updateProyecto(codigo, data as any)
       alert("Proyecto actualizado exitosamente")
-      router.push(`/proyectos/${id}`)
+      router.push(`/proyectos/${codigo}`)
     } catch (error) {
       console.error("Error updating project:", error)
       alert("Error al actualizar el proyecto")
@@ -43,7 +43,7 @@ export default function EditarProyectoPage() {
   }
 
   const handleCancel = () => {
-    router.push(`/proyectos/${id}`)
+    router.push(`/proyectos/${codigo}`)
   }
 
   if (loading) {
@@ -78,7 +78,7 @@ export default function EditarProyectoPage() {
       onCancel={handleCancel}
       breadcrumbs={[
         { href: "/proyectos", label: "Proyectos" },
-        { href: `/proyectos/${id}`, label: proyecto.nombre },
+        { href: `/proyectos/${codigo}`, label: proyecto.nombre },
         { href: "#", label: "Editar" },
       ]}
     />
