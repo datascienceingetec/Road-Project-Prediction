@@ -116,9 +116,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades"]
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales"]
             },
             "description": "Obtiene las unidades funcionales de un proyecto"
           }

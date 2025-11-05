@@ -24,7 +24,7 @@
 
 | Método   | Ruta                                   | Descripción                         |
 | -------- | -------------------------------------- | ----------------------------------- |
-| `GET`    | `/api/v1/proyectos/<codigo>/unidades`  | Lista las UFs de un proyecto        |
+| `GET`    | `/api/v1/proyectos/<codigo>/unidades-funcionales`  | Lista las UFs de un proyecto        |
 | `GET`    | `/api/v1/unidades-funcionales/<id>`    | Obtiene una UF por ID               |
 | `POST`   | `/api/v1/unidades-funcionales`         | Crea una nueva UF                   |
 | `PUT`    | `/api/v1/unidades-funcionales/<id>`    | Actualiza una UF                    |
