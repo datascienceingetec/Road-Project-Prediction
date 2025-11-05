@@ -2,22 +2,25 @@
   "info": {
     "name": "Road Project Prediction API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+    "_postman_id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
+    "description": "API para la gestión de proyectos viales y predicción de costos"
   },
   "item": [
     {
       "name": "Proyectos",
+      "description": "Endpoints para la gestión de proyectos viales",
       "item": [
         {
-          "name": "Obtener todos los proyectos",
+          "name": "Listar proyectos",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", ""]
-            }
+              "path": ["api", "{{api_version}}", "proyectos"]
+            },
+            "description": "Obtiene la lista de todos los proyectos"
           }
         },
         {
@@ -26,10 +29,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/id/{{id_proyecto}}",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/id/{{proyecto_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "id", "{{id_proyecto}}"]
-            }
+              "path": ["api", "{{api_version}}", "proyectos", "id", "{{proyecto_id}}"]
+            },
+            "description": "Obtiene un proyecto por su ID"
           }
         },
         {
@@ -41,7 +45,8 @@
               "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}",
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}"]
-            }
+            },
+            "description": "Obtiene un proyecto por su código único"
           }
         },
         {
@@ -53,13 +58,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"codigo\": \"{{codigo_proyecto}}\",\n    \"nombre\": \"Nuevo Proyecto\",\n    \"fase_id\": {{id_fase}},\n    \"anio_inicio\": 2025,\n    \"duracion\": 12\n}"
+              "raw": "{\n    \"codigo\": \"{{codigo_proyecto}}\",\n    \"nombre\": \"Nuevo Proyecto\",\n    \"fase_id\": 1,\n    \"anio_inicio\": 2025,\n    \"duracion\": 12,\n    \"longitud\": 10.5,\n    \"ubicacion\": \"Ubicación del proyecto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", ""]
-            }
+              "path": ["api", "{{api_version}}", "proyectos"]
+            },
+            "description": "Crea un nuevo proyecto"
           }
         },
         {
@@ -71,13 +82,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"nombre\": \"Nombre Actualizado\",\n    \"duracion\": 24\n}"
+              "raw": "{\n    \"nombre\": \"Nombre Actualizado\",\n    \"duracion\": 24,\n    \"ubicacion\": \"Ubicación actualizada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{id_proyecto}}",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{id_proyecto}}"]
-            }
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}"]
+            },
+            "description": "Actualiza un proyecto existente por su código"
           }
         },
         {
@@ -86,10 +103,11 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{id_proyecto}}",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{proyecto_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{id_proyecto}}"]
-            }
+              "path": ["api", "{{api_version}}", "proyectos", "{{proyecto_id}}"]
+            },
+            "description": "Elimina un proyecto por su ID"
           }
         },
         {
@@ -98,40 +116,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales",
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales"]
-            }
-          }
-        },
-        {
-          "name": "Agregar unidad funcional",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"numero\": 1,\n    \"longitud_km\": 10.5,\n    \"puentes_vehiculares_und\": 2,\n    \"tuneles_km\": 0.5\n}"
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades"]
             },
-            "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales",
-              "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales"]
-            }
-          }
-        },
-        {
-          "name": "Eliminar unidad funcional",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/unidades-funcionales/{{id_unidad}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "unidades-funcionales", "{{id_unidad}}"]
-            }
+            "description": "Obtiene las unidades funcionales de un proyecto"
           }
         },
         {
@@ -143,7 +132,8 @@
               "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos",
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos"]
-            }
+            },
+            "description": "Obtiene los costos de un proyecto"
           }
         },
         {
@@ -155,30 +145,155 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"costos\": [\n        {\"item_tipo_id\": 1, \"valor\": 1000.50},\n        {\"item_tipo_id\": 2, \"valor\": 2000.75}\n    ]\n}"
+              "raw": "[\n    {\n        \"item_tipo_id\": 1,\n        \"valor\": 1000.50\n    },\n    {\n        \"item_tipo_id\": 2,\n        \"valor\": 2000.75\n    }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos",
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos"]
-            }
+            },
+            "description": "Crea o actualiza costos de un proyecto"
+          }
+        },
+        {
+          "name": "Actualizar costo específico",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"valor\": 1500.25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos/{{costo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos", "{{costo_id}}"]
+            },
+            "description": "Actualiza un costo específico de un proyecto"
+          }
+        },
+        {
+          "name": "Eliminar costo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/proyectos/{{codigo_proyecto}}/costos/{{costo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "proyectos", "{{codigo_proyecto}}", "costos", "{{costo_id}}"]
+            },
+            "description": "Elimina un costo específico de un proyecto"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unidades Funcionales",
+      "description": "Endpoints para la gestión de unidades funcionales",
+      "item": [
+        {
+          "name": "Obtener unidad funcional por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/unidades-funcionales/{{unidad_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "unidades-funcionales", "{{unidad_id}}"]
+            },
+            "description": "Obtiene una unidad funcional por su ID"
+          }
+        },
+        {
+          "name": "Crear unidad funcional",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"proyecto_id\": {{proyecto_id}},\n    \"numero\": 1,\n    \"longitud_km\": 10.5,\n    \"puentes_vehiculares_und\": 2,\n    \"puentes_vehiculares_mt2\": 100,\n    \"puentes_peatonales_und\": 1,\n    \"puentes_peatonales_mt2\": 50,\n    \"tuneles_und\": 0,\n    \"tuneles_km\": 0,\n    \"alcance\": \"Alcance de la unidad\",\n    \"zona\": \"Zona de ubicación\",\n    \"tipo_terreno\": \"Tipo de terreno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/unidades-funcionales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "unidades-funcionales"]
+            },
+            "description": "Crea una nueva unidad funcional"
+          }
+        },
+        {
+          "name": "Actualizar unidad funcional",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"numero\": 1,\n    \"longitud_km\": 12.5,\n    \"alcance\": \"Alcance actualizado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/unidades-funcionales/{{unidad_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "unidades-funcionales", "{{unidad_id}}"]
+            },
+            "description": "Actualiza una unidad funcional existente"
+          }
+        },
+        {
+          "name": "Eliminar unidad funcional",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/unidades-funcionales/{{unidad_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "unidades-funcionales", "{{unidad_id}}"]
+            },
+            "description": "Elimina una unidad funcional por su ID"
           }
         }
       ]
     },
     {
       "name": "Fases",
+      "description": "Endpoints para la gestión de fases",
       "item": [
         {
-          "name": "Obtener todas las fases",
+          "name": "Listar fases",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/fases/",
+              "raw": "{{base_url}}/api/{{api_version}}/fases",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "fases", ""]
-            }
+              "path": ["api", "{{api_version}}", "fases"]
+            },
+            "description": "Obtiene la lista de todas las fases"
           }
         },
         {
@@ -465,7 +580,72 @@
           }
         }
       ]
-    }
+    },
+		{
+			"name": "Predicción",
+			"item": [
+				{
+					"name": "Obtener predicción de un proyecto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"proyecto_nombre\": \"Nuevo Proyecto\",\n    \"fase_id\": {{id_fase}},\n    \"ubicacion\": \"Ciudad\",\n    \"unidades_funcionales\": [\n        {\n            \"numero\": 1,\n            \"longitud_km\": 10,\n            \"puentes_vehiculares_und\": 2,\n            \"puentes_vehiculares_mt2\": 100,\n            \"puentes_peatonales_und\": 1,\n            \"puentes_peatonales_mt2\": 50,\n            \"tuneles_und\": 0,\n            \"tuneles_km\": 0,\n            \"alcance\": \"Alcance 1\",\n            \"zona\": \"Zona 1\",\n            \"tipo_terreno\": \"Terreno 1\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/predict",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"predict"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener payload de ejemplo",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/predict/example",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"predict",
+								"example"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
   ],
   "variable": [
     { "key": "base_url", "value": "http://localhost:5000", "type": "string" },

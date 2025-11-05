@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Scenario } from "@/lib/api"
+import { api, type Scenario, type Fase } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { FunctionalUnitForm, type FunctionalUnitFormData } from "@/components/prediction/functional-unit-form"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
@@ -12,11 +12,12 @@ export default function PrediccionPage() {
   const [prediction, setPrediction] = useState<any>(null)
   const [predictionItems, setPredictionItems] = useState<ItemCosto[]>([])
   const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([])
+  const [fases, setFases] = useState<Fase[]>([])
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
 
   const [formData, setFormData] = useState({
     nombre: "",
-    fase: "Fase I - Prefactibilidad",
+    fase_id: 0,
     ubicacion: "",
   })
 
@@ -37,12 +38,21 @@ export default function PrediccionPage() {
   ])
 
   useEffect(() => {
-    loadScenarios()
+    // loadScenarios()
+    loadFases()
   }, [])
 
   const loadScenarios = async () => {
     const scenarios = await api.getScenarios()
     setSavedScenarios(scenarios)
+  }
+
+  const loadFases = async () => {
+    const fases = await api.getFases()
+    setFases(fases)
+    if (fases.length > 0) {
+      setFormData((prev) => ({ ...prev, fase_id: fases[0].id }))
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -85,9 +95,8 @@ export default function PrediccionPage() {
 
     const predictionData = await api.predictCosto({
       proyecto_nombre: formData.nombre,
-      fase: formData.fase,
+      fase_id: formData.fase_id,
       ubicacion: formData.ubicacion,
-      num_ufs: unidadesFuncionales.length,
       unidades_funcionales: unidadesFuncionales,
     })
 
@@ -102,10 +111,9 @@ export default function PrediccionPage() {
     const scenario = await api.saveScenario({
       nombre,
       proyecto_nombre: formData.nombre,
-      fase: formData.fase,
+      fase_id: formData.fase_id,
       ubicacion: formData.ubicacion,
       costo_total: prediction.costo_estimado,
-      num_ufs: unidadesFuncionales.length,
       unidades_funcionales: unidadesFuncionales,
       items: predictionItems,
     })
@@ -126,7 +134,7 @@ export default function PrediccionPage() {
   }
 
   const isFormValid = () => {
-    const hasBasicInfo = formData.nombre && formData.fase && formData.ubicacion
+    const hasBasicInfo = formData.nombre && formData.fase_id && formData.ubicacion
     const hasValidUFs = unidadesFuncionales.every(
       (uf) => uf.longitud_km > 0 && uf.alcance && uf.zona && uf.tipo_terreno
     )
@@ -136,7 +144,7 @@ export default function PrediccionPage() {
   const resetForm = () => {
     setFormData({
       nombre: "",
-      fase: "Fase I - Prefactibilidad",
+      fase_id: 0,
       ubicacion: "",
     })
     setUnidadesFuncionales([
@@ -192,12 +200,14 @@ export default function PrediccionPage() {
                 <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Fase del Proyecto</p>
                 <select
                   className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 px-4 text-sm font-normal"
-                  value={formData.fase}
-                  onChange={(e) => handleInputChange("fase", e.target.value)}
+                  value={formData.fase_id}
+                  onChange={(e) => handleInputChange("fase_id", e.target.value)}
                 >
-                  <option value="Fase I - Prefactibilidad">Fase I - Prefactibilidad</option>
-                  <option value="Fase II - Factibilidad">Fase II - Factibilidad</option>
-                  <option value="Fase III - Diseños a Detalle">Fase III - Diseños a Detalle</option>
+                  {fases.map((fase) => (
+                    <option key={fase.id} value={fase.id}>
+                      {fase.nombre}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col">
@@ -306,7 +316,7 @@ export default function PrediccionPage() {
           )}
 
           {/* Gestión de Escenarios */}
-          <ScenarioManager
+          {/* <ScenarioManager
             currentScenario={
               prediction
                 ? {
@@ -322,7 +332,7 @@ export default function PrediccionPage() {
             onSaveScenario={handleSaveScenario}
             onCompareScenarios={handleCompareScenarios}
             onDeleteScenario={handleDeleteScenario}
-          />
+          /> */}
 
           {/* Nota informativa sobre comparación */}
           {selectedScenarioIds.length > 0 && (

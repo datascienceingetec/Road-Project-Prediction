@@ -77,22 +77,9 @@ export interface EnumsCatalog {
 
 export interface PredictionRequest {
   proyecto_nombre: string
-  fase: string
+  fase_id: number
   ubicacion: string
-  num_ufs: number
-  unidades_funcionales?: Array<{
-    numero: number
-    longitud_km: number
-    alcance: string
-    zona: string
-    tipo_terreno: string
-    puentes_vehiculares_und: number
-    puentes_vehiculares_mt2: number
-    puentes_peatonales_und: number
-    puentes_peatonales_mt2: number
-    tuneles_und: number
-    tuneles_km: number
-  }>
+  unidades_funcionales?: Omit<UnidadFuncional, "id" | "proyecto_id">[]
 }
 
 export interface PredictionResponse {
@@ -109,11 +96,10 @@ export interface Scenario {
   id: string
   nombre: string
   proyecto_nombre: string
-  fase: string
+  fase_id: number
   ubicacion: string
   costo_total: number
   fecha_creacion: string
-  num_ufs: number
-  unidades_funcionales?: any[]
+  unidades_funcionales?: Omit<UnidadFuncional, "id" | "proyecto_id">[]
   items?: any[]
 }

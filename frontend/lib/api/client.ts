@@ -137,12 +137,11 @@ export const api = {
 
   // ---------- Predicción ----------
   getPrediction(data: PredictionRequest): Promise<PredictionResponse> {
-    // Tu código usa "/prediccion"
-    return fetchAPI('/prediccion', { method: 'POST', body: JSON.stringify(data) })
+    console.log(data) 
+    return fetchAPI('/predict/', { method: 'POST', body: JSON.stringify(data) })
   },
 
   predictCosto(data: PredictionRequest): Promise<PredictionResponse> {
-    // Alias que reusa el mismo endpoint
     return this.getPrediction(data)
   },
 
