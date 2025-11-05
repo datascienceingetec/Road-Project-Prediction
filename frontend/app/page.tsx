@@ -15,6 +15,7 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Proyecto[]>([])
   const [fases, setFases] = useState<Fase[]>([])
   const [selectedProject, setSelectedProject] = useState<Proyecto | null>(null)
+  const [projectKml, setProjectKml] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   const loadProjects = async () => {
@@ -61,26 +62,28 @@ export default function HomePage() {
     return null
   }
   
-  const handleProjectClick = (project: Proyecto) => {
+  const handleProjectClick = async (project: Proyecto) => {
     if (project.id === selectedProject?.id) {
       setSelectedProject(null)
       return
     }
+
+    setProjectKml(`https://storage.googleapis.com/road_prediction/${project.codigo}.kml`)
     
     if (project.lat_inicio && project.lng_inicio) {
       setSelectedProject(project)
       return
     }
 
-    getCoords(project.ubicacion).then((coords) => {
-      if (coords) {
-        setSelectedProject({
-          ...project,
+    const coords = await getCoords(project.ubicacion)
+    if (coords) {
+      // await api.updateProyecto(project.codigo, { lat_inicio: coords.lat, lng_inicio: coords.lng })
+      setSelectedProject({
+        ...project,
           lat_inicio: coords.lat,
           lng_inicio: coords.lng,
         })
-      }
-    })
+    }
   }
 
   if (loading) {
@@ -117,6 +120,7 @@ export default function HomePage() {
             center={mapCenter}
             zoom={selectedProject ? 12 : DEFAULT_ZOOM}
             className="w-full h-full"
+            kml={projectKml}
             markers={
               selectedProject?.lat_inicio && selectedProject?.lng_inicio
                 ? [

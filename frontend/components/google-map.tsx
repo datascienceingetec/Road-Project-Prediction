@@ -21,16 +21,18 @@ interface GoogleMapProps {
   zoom?: number
   markers?: MapMarker[]
   polyline?: { lat: number; lng: number }[]
+  kml?: string
   highlightedMarker?: number
   className?: string
 }
 
-export function GoogleMap({ center, zoom = 12, markers = [], polyline, highlightedMarker, className }: GoogleMapProps) {
+export function GoogleMap({ center, zoom = 12, markers = [], polyline, kml, highlightedMarker, className }: GoogleMapProps) {
   const { isLoaded } = useContext(GoogleMapsContext)
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const mapMarkers = useRef<any[]>([])
   const mapPolyline = useRef<any>(null)
+  const mapKml = useRef<any>(null)
 
   // Inicializar el mapa
   useEffect(() => {
@@ -112,6 +114,44 @@ export function GoogleMap({ center, zoom = 12, markers = [], polyline, highlight
       map,
     })
   }, [map, polyline, isLoaded])
+
+  // Cargar o actualizar el archivo KML
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    // Si ya hay un KML anterior, eliminarlo
+    if (mapKml.current) {
+      mapKml.current.setMap(null)
+      mapKml.current = null
+    }
+
+    // Si hay un nuevo path de KML, cargarlo
+    if (kml && kml.trim() !== "") {
+      try {
+        const kmlUrl = kml.startsWith("http")
+          ? kml
+          : `${window.location.origin}${kml}`
+
+        console.log("Cargando KML desde:", kmlUrl)
+        mapKml.current = new window.google.maps.KmlLayer({
+          url: kmlUrl,
+          map,
+          preserveViewport: false, // ajusta el zoom al KML automáticamente
+        })
+
+        mapKml.current.addListener("status_changed", () => {
+          const status = mapKml.current.getStatus()
+          console.log("Status del KML:", status)
+          if (status !== "OK") {
+            console.warn(`Error al cargar el KML (${status})`)
+          }
+        })
+      } catch (err) {
+        console.error("Error creando capa KML:", err)
+      }
+    }
+  }, [map, kml, isLoaded])
+
 
   if (!isLoaded) {
     return <div className={className || "w-full h-full bg-gray-100 flex items-center justify-center"}>Cargando mapa...</div>
