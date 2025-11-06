@@ -175,4 +175,17 @@ export const api = {
     params.append('present_year', String(presentYear))
     return fetchAPI(`/charts/causacion-por-km?${params.toString()}`)
   },
+
+  async getItemComparison(itemTipoId: number, faseId?: number, presentYear: number = 2025) {
+    const params = new URLSearchParams()
+    params.append('item_tipo_id', String(itemTipoId))
+    if (faseId) params.append('fase_id', String(faseId))
+    params.append('present_year', String(presentYear))
+    return fetchAPI(`/charts/item-comparison?${params.toString()}`)
+  },
+
+  // ---------- Model Training ----------
+  async trainModel() {
+    return fetchAPI('/predict/train', { method: 'POST' })
+  },
 }

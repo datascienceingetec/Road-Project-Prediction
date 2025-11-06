@@ -1,9 +1,9 @@
 "use client"
 
-import type { UnidadFuncional } from "@/lib/api"
+import type { UnidadFuncional, FunctionalUnitFormData } from "@/lib/api"
 
 interface FunctionalUnitCardProps {
-  unidad: UnidadFuncional
+  unidad: UnidadFuncional | FunctionalUnitFormData
   isSelected: boolean
   onClick: () => void
   onEdit: () => void
@@ -43,7 +43,7 @@ export function FunctionalUnitCard({
             UF-{String(unidad.numero).padStart(2, "0")}
           </h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            {unidad.alcance.trim()}
+            {unidad.alcance?.trim() || "Sin alcance"}
           </p>
         </div>
         <div className="flex items-center gap-2">

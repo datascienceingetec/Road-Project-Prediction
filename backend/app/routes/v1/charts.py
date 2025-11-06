@@ -322,6 +322,125 @@ def get_causacion_por_km():
         current_app.logger.exception("Error al generar causación por km")
         return jsonify({'error': str(e)}), 500
 
+@charts_bp.route('/item-comparison', methods=['GET'])
+def get_item_comparison():
+    """
+    Endpoint para obtener datos de comparación histórica de un ítem específico (versión detallada por UF).
+    
+    Query Parameters:
+    - item_tipo_id: ID del tipo de ítem a comparar (requerido)
+    - fase_id: ID de la fase (opcional, filtra por fase)
+    - present_year: Año presente para cálculo de valor presente. Default: 2025
+    
+    Returns:
+    - historical_data: Lista de UFs con el ítem calculado a valor presente
+    - trend_line: Línea de regresión lineal global
+    - metadata: Información sobre el ítem y filtros aplicados
+    """
+    try:
+        item_tipo_id = request.args.get('item_tipo_id', type=int)
+        fase_id = request.args.get('fase_id', type=int)
+        present_year = int(request.args.get('present_year', 2025))
+        
+        if not item_tipo_id:
+            return jsonify({'error': 'item_tipo_id es requerido'}), 400
+
+        # Buscar el ItemTipo
+        item_tipo = ItemTipo.query.get(item_tipo_id)
+        if not item_tipo:
+            return jsonify({'error': f'Item con ID {item_tipo_id} no encontrado'}), 404
+
+        # Query detallada por Unidad Funcional (no agregada por proyecto)
+        query = (
+            db.session.query(
+                Proyecto.id.label('proyecto_id'),
+                Proyecto.codigo,
+                Proyecto.nombre,
+                Proyecto.anio_inicio,
+                Fase.nombre.label('fase_nombre'),
+                UnidadFuncional.id.label('uf_id'),
+                UnidadFuncional.alcance,
+                UnidadFuncional.longitud_km,
+                CostoItem.valor.label('valor_item')
+            )
+            .join(Fase, Proyecto.fase_id == Fase.id)
+            .join(UnidadFuncional, UnidadFuncional.proyecto_id == Proyecto.id)
+            .join(CostoItem, CostoItem.proyecto_id == Proyecto.id)
+            .filter(
+                CostoItem.item_tipo_id == item_tipo.id,
+                CostoItem.valor > 0,
+                UnidadFuncional.longitud_km > 0
+            )
+        )
+
+        if fase_id:
+            query = query.filter(Proyecto.fase_id == fase_id)
+
+        results = query.all()
+
+        if not results:
+            return jsonify({'historical_data': [], 'trend_line': None, 'metadata': {
+                'item_nombre': item_tipo.nombre,
+                'item_tipo_id': item_tipo.id,
+                'fase_id': fase_id,
+                'present_year': present_year,
+                'total_projects': 0
+            }})
+
+        # --- Construir dataset detallado (por UF) ---
+        historical_data = []
+        for row in results:
+            # Calcular valor presente a nivel de ítem individual (por UF)
+            costo_vp = calculate_present_value(row.valor_item, row.anio_inicio, present_year)
+            
+            historical_data.append({
+                'codigo': row.codigo,
+                'nombre': row.nombre,
+                'anio_inicio': row.anio_inicio,
+                'fase': row.fase_nombre,
+                'alcance': row.alcance.value if row.alcance else 'Sin especificar',
+                'longitud_km': float(row.longitud_km),
+                'costo_total_vp': float(costo_vp),
+                'costo_millones': float(costo_vp / 1_000_000),
+                'unidades_funcionales': 1  # cada fila es una UF individual
+            })
+
+        # --- Calcular regresión lineal sobre los puntos UF ---
+        valid_data = [p for p in historical_data if p['longitud_km'] > 0 and p['costo_millones'] > 0]
+        trend_line = None
+
+        if len(valid_data) >= 2:
+            X = np.array([[p['longitud_km']] for p in valid_data])
+            y = np.array([p['costo_millones'] for p in valid_data])
+
+            model = LinearRegression()
+            model.fit(X, y)
+            y_pred = model.predict(X)
+
+            sort_idx = X.flatten().argsort()
+            trend_line = {
+                'x': X[sort_idx].flatten().tolist(),
+                'y': y_pred[sort_idx].tolist(),
+                'slope': float(model.coef_[0]),
+                'intercept': float(model.intercept_)
+            }
+
+        return jsonify({
+            'historical_data': historical_data,
+            'trend_line': trend_line,
+            'metadata': {
+                'item_nombre': item_tipo.nombre,
+                'item_tipo_id': item_tipo.id,
+                'fase_id': fase_id,
+                'present_year': present_year,
+                'total_projects': len(historical_data)
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @charts_bp.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""

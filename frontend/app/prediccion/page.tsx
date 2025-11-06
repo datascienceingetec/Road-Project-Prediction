@@ -1,19 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Scenario, type Fase } from "@/lib/api"
+import { api, type Fase, type PredictionResponse, type FunctionalUnitFormData } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
-import { FunctionalUnitForm, type FunctionalUnitFormData } from "@/components/prediction/functional-unit-form"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
-import { ScenarioManager } from "@/components/prediction/scenario-manager"
+import { PredictionComparisonChart } from "@/components/charts/prediction-comparison-chart"
+import { ModelMetrics } from "@/components/prediction/model-metrics"
+import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
+import { FunctionalUnitCard } from "@/components/functional-unit-card"
 
 export default function PrediccionPage() {
   const [loading, setLoading] = useState(false)
   const [prediction, setPrediction] = useState<any>(null)
   const [predictionItems, setPredictionItems] = useState<ItemCosto[]>([])
-  const [savedScenarios, setSavedScenarios] = useState<Scenario[]>([])
   const [fases, setFases] = useState<Fase[]>([])
-  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
+  const [selectedItem, setSelectedItem] = useState<ItemCosto | null>(null)
+  const [modelMetrics, setModelMetrics] = useState<PredictionResponse['metrics']>({})
+  const [trainingModel, setTrainingModel] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingUF, setEditingUF] = useState<{ index: number; data: FunctionalUnitFormData } | null>(null)
+  const [selectedUFIndex, setSelectedUFIndex] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -21,31 +27,11 @@ export default function PrediccionPage() {
     ubicacion: "",
   })
 
-  const [unidadesFuncionales, setUnidadesFuncionales] = useState<FunctionalUnitFormData[]>([
-    {
-      numero: 1,
-      longitud_km: 0,
-      puentes_vehiculares_und: 0,
-      puentes_vehiculares_mt2: 0,
-      puentes_peatonales_und: 0,
-      puentes_peatonales_mt2: 0,
-      tuneles_und: 0,
-      tuneles_km: 0,
-      alcance: "",
-      zona: "",
-      tipo_terreno: "",
-    },
-  ])
+  const [unidadesFuncionales, setUnidadesFuncionales] = useState<FunctionalUnitFormData[]>([])
 
   useEffect(() => {
-    // loadScenarios()
     loadFases()
   }, [])
-
-  const loadScenarios = async () => {
-    const scenarios = await api.getScenarios()
-    setSavedScenarios(scenarios)
-  }
 
   const loadFases = async () => {
     const fases = await api.getFases()
@@ -60,35 +46,45 @@ export default function PrediccionPage() {
   }
 
   const handleAddUnidadFuncional = () => {
-    setUnidadesFuncionales([
-      ...unidadesFuncionales,
-      {
-        numero: unidadesFuncionales.length + 1,
-        longitud_km: 0,
-        puentes_vehiculares_und: 0,
-        puentes_vehiculares_mt2: 0,
-        puentes_peatonales_und: 0,
-        puentes_peatonales_mt2: 0,
-        tuneles_und: 0,
-        tuneles_km: 0,
-        alcance: "",
-        zona: "",
-        tipo_terreno: "",
-      },
-    ])
+    setEditingUF(null)
+    setIsModalOpen(true)
+  }
+
+  const handleEditUnidadFuncional = (index: number) => {
+    setEditingUF({ index, data: unidadesFuncionales[index] })
+    setIsModalOpen(true)
+  }
+
+  const handleSaveUnidadFuncional = (data?: FunctionalUnitFormData) => {
+    if (!data) return
+    
+    if (editingUF !== null) {
+      // Editing existing
+      const updated = [...unidadesFuncionales]
+      updated[editingUF.index] = { ...data, numero: editingUF.index + 1 }
+      setUnidadesFuncionales(updated)
+    } else {
+      // Adding new
+      setUnidadesFuncionales([
+        ...unidadesFuncionales,
+        { ...data, numero: unidadesFuncionales.length + 1 },
+      ])
+    }
+    setEditingUF(null)
   }
 
   const handleRemoveUnidadFuncional = (index: number) => {
-    if (unidadesFuncionales.length > 1) {
-      setUnidadesFuncionales(unidadesFuncionales.filter((_, i) => i !== index))
+    const updated = unidadesFuncionales.filter((_, i) => i !== index)
+    // Renumerar las unidades funcionales
+    const renumbered = updated.map((uf, idx) => ({ ...uf, numero: idx + 1 }))
+    setUnidadesFuncionales(renumbered)
+    if (selectedUFIndex === index) {
+      setSelectedUFIndex(null)
+    } else if (selectedUFIndex !== null && selectedUFIndex > index) {
+      setSelectedUFIndex(selectedUFIndex - 1)
     }
   }
 
-  const handleUpdateUnidadFuncional = (index: number, data: FunctionalUnitFormData) => {
-    const updated = [...unidadesFuncionales]
-    updated[index] = data
-    setUnidadesFuncionales(updated)
-  }
 
   const handlePredict = async () => {
     setLoading(true)
@@ -102,104 +98,110 @@ export default function PrediccionPage() {
 
     setPrediction(predictionData)
     setPredictionItems(predictionData.items || [])
+    setModelMetrics(predictionData.metrics) 
     setLoading(false)
-  }
-
-  const handleSaveScenario = async (nombre: string) => {
-    if (!prediction) return
-
-    const scenario = await api.saveScenario({
-      nombre,
-      proyecto_nombre: formData.nombre,
-      fase_id: formData.fase_id,
-      ubicacion: formData.ubicacion,
-      costo_total: prediction.costo_estimado,
-      unidades_funcionales: unidadesFuncionales,
-      items: predictionItems,
-    })
-
-    setSavedScenarios([...savedScenarios, scenario])
-  }
-
-  const handleDeleteScenario = async (scenarioId: string) => {
-    await api.deleteScenario(scenarioId)
-    setSavedScenarios(savedScenarios.filter((s) => s.id !== scenarioId))
-    setSelectedScenarioIds(selectedScenarioIds.filter((id) => id !== scenarioId))
-  }
-
-  const handleCompareScenarios = (scenarioIds: string[]) => {
-    setSelectedScenarioIds(scenarioIds)
-    // TODO: Implement comparison visualization in chart
-    console.log("Comparing scenarios:", scenarioIds)
   }
 
   const isFormValid = () => {
     const hasBasicInfo = formData.nombre && formData.fase_id && formData.ubicacion
+    const hasUFs = unidadesFuncionales.length > 0
     const hasValidUFs = unidadesFuncionales.every(
       (uf) => uf.longitud_km > 0 && uf.alcance && uf.zona && uf.tipo_terreno
     )
-    return hasBasicInfo && hasValidUFs
+    return hasBasicInfo && hasUFs && hasValidUFs
   }
 
   const resetForm = () => {
     setFormData({
       nombre: "",
-      fase_id: 0,
+      fase_id: fases.length > 0 ? fases[0].id : 0,
       ubicacion: "",
     })
-    setUnidadesFuncionales([
-      {
-        numero: 1,
-        longitud_km: 0,
-        puentes_vehiculares_und: 0,
-        puentes_vehiculares_mt2: 0,
-        puentes_peatonales_und: 0,
-        puentes_peatonales_mt2: 0,
-        tuneles_und: 0,
-        tuneles_km: 0,
-        alcance: "",
-        zona: "",
-        tipo_terreno: "",
-      },
-    ])
+    setUnidadesFuncionales([])
     setPrediction(null)
     setPredictionItems([])
+    setSelectedItem(null)
+    setSelectedUFIndex(null)
+  }
+
+  const handleItemClick = (item: ItemCosto) => {
+    if (selectedItem && selectedItem.item_tipo_id === item.item_tipo_id) {
+      setSelectedItem(null)
+      return
+    }
+    setSelectedItem(item)
+  }
+
+  const handleTrainModel = async () => {
+    setTrainingModel(true)
+    try {
+      const result = await api.trainModel()
+      alert(result.message || 'Modelo entrenado exitosamente')
+    } catch (error) {
+      console.error('Error al entrenar modelo:', error)
+      alert('Error al entrenar el modelo')
+    } finally {
+      setTrainingModel(false)
+    }
+  }
+
+  const getTotalLength = () => {
+    return unidadesFuncionales.reduce((sum, uf) => sum + (uf.longitud_km || 0), 0)
   }
 
   return (
     <main className="flex flex-1 justify-center p-5 sm:p-10">
-      <div className="flex flex-col w-full max-w-7xl">
+      <div className="flex flex-col w-full">
         {/* Encabezado */}
-        <div className="flex flex-wrap justify-between gap-3 p-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 p-4">
           <h1 className="text-[#071d49] text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
             Predicción de Costos
           </h1>
+          <button
+            onClick={handleTrainModel}
+            disabled={trainingModel}
+            className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {trainingModel ? (
+              <>
+                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                Entrenando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-sm">model_training</span>
+                Reentrenar Modelo
+              </>
+            )}
+          </button>
         </div>
 
         {/* Layout Principal */}
         <div className="flex flex-col gap-8 p-4">
           {/* Información General */}
-          <details className="flex flex-col rounded-xl border border-[#dee2e6] bg-white group" open>
-            <summary className="flex cursor-pointer items-center justify-between gap-6 p-4">
-              <p className="text-[#071d49] text-base font-bold leading-normal">Información General</p>
-              <span className="material-symbols-outlined text-[#111418] transition-transform group-open:rotate-180">
-                expand_more
-              </span>
-            </summary>
-            <div className="border-t border-[#dee2e6] p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <label className="flex flex-col">
-                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Nombre del Proyecto</p>
+          <div className="bg-white rounded-xl border border-[#dee2e6] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-primary">info</span>
+              <h2 className="text-[#071d49] text-lg font-bold">Información General</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre del Proyecto
+                </label>
                 <input
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   placeholder="ej. Autopista del Sol"
                   value={formData.nombre}
                   onChange={(e) => handleInputChange("nombre", e.target.value)}
                 />
-              </label>
-              <label className="flex flex-col">
-                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Fase del Proyecto</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fase del Proyecto
+                </label>
                 <select
-                  className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 px-4 text-sm font-normal"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   value={formData.fase_id}
                   onChange={(e) => handleInputChange("fase_id", e.target.value)}
                 >
@@ -209,25 +211,29 @@ export default function PrediccionPage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="flex flex-col">
-                <p className="text-[#111418] text-sm font-medium leading-normal pb-2">Ubicación</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ubicación
+                </label>
                 <input
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dee2e6] bg-white h-12 placeholder:text-[#6c757d] px-4 text-sm font-normal"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   placeholder="ej. Bogotá, Colombia"
                   value={formData.ubicacion}
                   onChange={(e) => handleInputChange("ubicacion", e.target.value)}
                 />
-              </label>
+              </div>
             </div>
-          </details>
+          </div>
 
           {/* Unidades Funcionales */}
           <div className="flex flex-col rounded-xl border border-[#dee2e6] bg-white">
             <div className="flex items-center justify-between p-4 border-b border-[#dee2e6]">
               <div>
                 <p className="text-[#071d49] text-base font-bold leading-normal">Unidades Funcionales</p>
-                <p className="text-sm text-gray-600 mt-1">Detalle completo de cada unidad funcional del proyecto</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {unidadesFuncionales.length} {unidadesFuncionales.length === 1 ? 'unidad' : 'unidades'} • {getTotalLength().toFixed(1)} km total
+                </p>
               </div>
               <button
                 onClick={handleAddUnidadFuncional}
@@ -237,19 +243,38 @@ export default function PrediccionPage() {
                 Agregar UF
               </button>
             </div>
-            <div className="p-6 space-y-6">
-              {unidadesFuncionales.map((uf, index) => (
-                <FunctionalUnitForm
-                  key={index}
-                  data={uf}
-                  onChange={(data) => handleUpdateUnidadFuncional(index, data)}
-                  onRemove={() => handleRemoveUnidadFuncional(index)}
-                  showRemoveButton={unidadesFuncionales.length > 1}
-                  unitNumber={index + 1}
-                />
-              ))}
+            <div className="p-4 space-y-3">
+              {unidadesFuncionales.length === 0 ? (
+                <div className="text-center py-12">
+                  <span className="material-symbols-outlined text-gray-400 text-5xl mb-3">add_road</span>
+                  <p className="text-gray-600">No hay unidades funcionales</p>
+                  <p className="text-sm text-gray-500 mt-2">Haz clic en "Agregar UF" para comenzar</p>
+                </div>
+              ) : (
+                unidadesFuncionales.map((uf, index) => (
+                  <FunctionalUnitCard
+                    key={index}
+                    unidad={uf}
+                    isSelected={selectedUFIndex === index}
+                    onClick={() => setSelectedUFIndex(selectedUFIndex === index ? null : index)}
+                    onEdit={() => handleEditUnidadFuncional(index)}
+                    onDelete={() => handleRemoveUnidadFuncional(index)}
+                  />
+                ))
+              )}
             </div>
           </div>
+
+          {/* Modal */}
+          <EditFunctionalUnitModal
+            unidad={editingUF?.data || null}
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false)
+              setEditingUF(null)
+            }}
+            onSave={handleSaveUnidadFuncional}
+          />
 
           {/* Acciones del Formulario */}
           <div className="flex items-center justify-end gap-4">
@@ -310,52 +335,47 @@ export default function PrediccionPage() {
                 </div>
               </div>
 
-              {/* Tabla de Items */}
-              <PredictionResultsTable items={predictionItems} loading={loading} />
-            </div>
-          )}
-
-          {/* Gestión de Escenarios */}
-          {/* <ScenarioManager
-            currentScenario={
-              prediction
-                ? {
-                    proyecto_nombre: formData.nombre,
-                    fase: formData.fase,
-                    ubicacion: formData.ubicacion,
-                    costo_total: prediction.costo_estimado,
-                    num_ufs: unidadesFuncionales.length,
-                  }
-                : undefined
-            }
-            savedScenarios={savedScenarios}
-            onSaveScenario={handleSaveScenario}
-            onCompareScenarios={handleCompareScenarios}
-            onDeleteScenario={handleDeleteScenario}
-          /> */}
-
-          {/* Nota informativa sobre comparación */}
-          {selectedScenarioIds.length > 0 && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-              <div className="flex items-start gap-4">
-                <span className="material-symbols-outlined text-blue-600 text-2xl">info</span>
-                <div>
-                  <h3 className="text-blue-900 font-bold text-lg mb-2">Escenarios Seleccionados para Comparación</h3>
-                  <p className="text-blue-800 text-sm">
-                    Has seleccionado {selectedScenarioIds.length} escenario(s) para comparar. Los escenarios
-                    seleccionados se resaltarán en la gráfica de valor presente de la causación en el dashboard.
-                  </p>
-                  <button
-                    onClick={() => {
-                      // TODO: Navigate to dashboard with selected scenarios
-                      console.log("Navigate to dashboard with scenarios:", selectedScenarioIds)
-                    }}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-sm">dashboard</span>
-                    Ver Comparación en Dashboard
-                  </button>
+              {/* Split Layout: Tabla y Comparación */}
+              <div
+                className={`grid gap-6 transition-all duration-300 ${
+                  selectedItem ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1'
+                }`}
+              >
+                {/* Tabla de Items */}
+                <div className={`transition-all duration-300 ${selectedItem ? 'md:col-span-2' : 'col-span-1'}`}>
+                  <PredictionResultsTable 
+                    items={predictionItems} 
+                    loading={loading}
+                    onItemClick={handleItemClick}
+                    selectedItem={selectedItem}
+                  />
                 </div>
+
+                {/* Panel de Comparación */}
+                {selectedItem && (
+                  <div className="md:col-span-3 space-y-6 animate-in slide-in-from-right duration-300">
+                    <div className="bg-white rounded-xl border border-[#dee2e6] p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-[#071d49]">Análisis de Item</h3>
+                        <button
+                          onClick={() => setSelectedItem(null)}
+                          className="text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
+                      <PredictionComparisonChart
+                        itemNombre={selectedItem.item}
+                        itemTipoId={selectedItem.item_tipo_id}
+                        faseId={formData.fase_id}
+                        predictedValue={selectedItem.causacion_estimada}
+                        predictedLength={getTotalLength()}
+                      />
+                    </div>
+                    
+                    <ModelMetrics metrics={modelMetrics} />
+                  </div>
+                )}
               </div>
             </div>
           )}

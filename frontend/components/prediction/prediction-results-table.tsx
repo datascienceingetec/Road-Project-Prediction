@@ -4,15 +4,18 @@ import { formatCurrency } from "@/lib/utils"
 
 export interface ItemCosto {
   item: string
+  item_tipo_id: number
   causacion_estimada: number
 }
 
 interface PredictionResultsTableProps {
   items: ItemCosto[]
   loading?: boolean
+  onItemClick?: (item: ItemCosto) => void
+  selectedItem?: ItemCosto | null
 }
 
-export function PredictionResultsTable({ items, loading = false }: PredictionResultsTableProps) {
+export function PredictionResultsTable({ items, loading = false, onItemClick, selectedItem }: PredictionResultsTableProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-[#dee2e6] p-6">
@@ -63,19 +66,34 @@ export function PredictionResultsTable({ items, loading = false }: PredictionRes
           <tbody className="bg-white divide-y divide-gray-200">
             {items.map((item, index) => {
               const percentage = totalCausacion > 0 ? (item.causacion_estimada / totalCausacion) * 100 : 0
+              const isSelected = selectedItem?.item === item.item
               return (
-                <tr key={index} className="hover:bg-gray-50 transition-colors">
+                <tr 
+                  key={index} 
+                  className={`transition-colors cursor-pointer ${
+                    isSelected 
+                      ? 'bg-primary/10 hover:bg-primary/15' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => onItemClick?.(item)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="material-symbols-outlined text-primary mr-2 text-sm">check_circle</span>
-                      <span className="text-sm font-medium text-gray-900">{item.item}</span>
+                      <span className={`material-symbols-outlined mr-2 text-sm ${isSelected ? 'text-primary' : 'text-primary'}`}>
+                        {isSelected ? 'radio_button_checked' : 'check_circle'}
+                      </span>
+                      <span className={`text-sm font-medium ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
+                        {item.item}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
                     {formatCurrency(item.causacion_estimada)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                    }`}>
                       {percentage.toFixed(1)}%
                     </span>
                   </td>

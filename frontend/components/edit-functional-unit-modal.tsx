@@ -3,14 +3,14 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { type UnidadFuncional, type EnumOption, api } from "@/lib/api"
+import { type UnidadFuncional, type EnumOption, type FunctionalUnitFormData, api } from "@/lib/api"
 
 interface EditFunctionalUnitModalProps {
-  unidad: UnidadFuncional | null
+  unidad: UnidadFuncional | FunctionalUnitFormData | null
   isOpen: boolean
   onClose: () => void
-  onSave: () => void
-  proyectoId: number
+  onSave: (data?: any) => void
+  proyectoId?: number
 }
 
 export function EditFunctionalUnitModal({
@@ -45,8 +45,7 @@ export function EditFunctionalUnitModal({
     if (unidad) {
       setFormData(unidad)
     } else {
-      setFormData({
-        proyecto_id: proyectoId,
+      const baseData = {
         numero: 1,
         longitud_km: 0,
         puentes_vehiculares_und: 0,
@@ -58,7 +57,8 @@ export function EditFunctionalUnitModal({
         alcance: alcanceOptions[0]?.value || "",
         zona: zonaOptions[0]?.value || "",
         tipo_terreno: tipoTerrenoOptions[0]?.value || "",
-      })
+      }
+      setFormData(proyectoId !== undefined ? { ...baseData, proyecto_id: proyectoId } : baseData)
     }
   }, [unidad, proyectoId, alcanceOptions, zonaOptions, tipoTerrenoOptions])
 
@@ -67,13 +67,18 @@ export function EditFunctionalUnitModal({
     setLoading(true)
 
     try {
-      if (unidad) {
-        await api.updateUnidadFuncional(unidad.id, formData as Partial<UnidadFuncional>)
+      // Si tiene proyectoId, es para guardar en BD
+      if (proyectoId !== undefined) {
+        if (unidad && 'id' in unidad) {
+          await api.updateUnidadFuncional(unidad.id, formData as Partial<UnidadFuncional>)
+        } else {
+          await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+        }
+        onSave()
       } else {
-        
-        await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+        // Si no tiene proyectoId, solo retorna los datos (para predicción)
+        onSave(formData)
       }
-      onSave()
       onClose()
     } catch (error) {
       console.error("Error al guardar unidad funcional:", error)

@@ -75,6 +75,20 @@ export interface EnumsCatalog {
   status: EnumOption[]
 }
 
+export interface FunctionalUnitFormData {
+  numero: number
+  longitud_km: number
+  puentes_vehiculares_und: number
+  puentes_vehiculares_mt2: number
+  puentes_peatonales_und: number
+  puentes_peatonales_mt2: number
+  tuneles_und: number
+  tuneles_km: number
+  alcance: string
+  zona: string
+  tipo_terreno: string
+}
+
 export interface PredictionRequest {
   proyecto_nombre: string
   fase_id: number
@@ -88,8 +102,17 @@ export interface PredictionResponse {
   confianza: number
   items?: Array<{
     item: string
+    item_tipo_id: number
     causacion_estimada: number
   }>
+  metrics?: {
+    r2?: number
+    mae?: number
+    rmse?: number
+    mape?: number
+    median_ae?: number
+    max_error?: number
+  }
 }
 
 export interface Scenario {
