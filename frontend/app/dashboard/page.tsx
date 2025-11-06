@@ -1,23 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api, type Proyecto } from "@/lib/api"
+import { api } from "@/lib/api"
 import { ValorPresenteChart } from "@/components/charts/valor-presente-chart"
 import { CausacionKmChart } from "@/components/charts/causacion-km-chart"
-import { StatsGrid } from "@/components/dashboard/stats-grid"
-import { DashboardCharts } from "@/components/dashboard/dashboard-charts"
-
-interface Estadisticas {
-  totalProyectos: number
-  inversionTotal: number
-  kmTotales: number
-  distribucionFase: Record<string, number>
-  inversionPorMes: Array<{ mes: string; inversion: number }>
-  proyectosRecientes: Proyecto[]
-}
 
 export default function DashboardPage() {
-  const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null)
   const [loading, setLoading] = useState(true)
   
   // Filtros para los gráficos
@@ -28,20 +16,6 @@ export default function DashboardPage() {
   const [alcances, setAlcances] = useState<any[]>([])
 
   useEffect(() => {
-    async function cargarEstadisticas() {
-      try {
-        const data = await api.getEstadisticas()
-        setEstadisticas(data)
-      } catch (error) {
-        console.error("Error cargando estadísticas:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    cargarEstadisticas()
-  }, [])
-
-  useEffect(() => {
     async function cargarOpciones() {
       try {
         const [fasesData, alcancesData] = await Promise.all([
@@ -50,8 +24,10 @@ export default function DashboardPage() {
         ])
         setFases(fasesData)
         setAlcances(alcancesData)
+        setLoading(false)
       } catch (error) {
         console.error("Error cargando opciones:", error)
+        setLoading(false)
       }
     }
     cargarOpciones()
@@ -68,16 +44,6 @@ export default function DashboardPage() {
     )
   }
 
-  if (!estadisticas) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-600">Error cargando datos</p>
-      </div>
-    )
-  }
-
-  const costoPromedioPorKm = estadisticas.kmTotales > 0 ? estadisticas.inversionTotal / estadisticas.kmTotales : 0
-
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="p-6 md:p-8">
@@ -86,21 +52,6 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
           <p className="text-gray-600">Resumen general de proyectos de infraestructura vial</p>
         </div>
-
-        {/* Stats Grid */}
-        {/* <StatsGrid
-          totalProyectos={estadisticas.totalProyectos}
-          inversionTotal={estadisticas.inversionTotal}
-          kmTotales={estadisticas.kmTotales}
-          costoPromedioPorKm={costoPromedioPorKm}
-        /> */}
-
-        {/* Charts Section */}
-        {/* <DashboardCharts
-          inversionPorMes={estadisticas.inversionPorMes}
-          distribucionFase={estadisticas.distribucionFase}
-          totalProyectos={estadisticas.totalProyectos}
-        /> */}
 
         {/* Analytics Charts Section */}
         <div className="mb-8">

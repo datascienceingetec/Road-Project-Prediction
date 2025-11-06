@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { api } from "@/lib/api"
 
@@ -60,13 +60,11 @@ export function CausacionKmChart({ faseId, alcance, presentYear = 2025 }: Causac
 
   const { heatmap_data, categories, alcances, metadata } = data
 
-  // Build z matrix for heatmap
   const zMatrix = categories.map((category: string) => {
     const row = heatmap_data.find((r: any) => r.category === category)
     return alcances.map((alcance: string) => row?.[alcance] || null)
   })
 
-  // Create hover text
   const hoverText = categories.map((category: string, i: number) => {
     return alcances.map((alcance: string, j: number) => {
       const value = zMatrix[i][j]
@@ -75,12 +73,48 @@ export function CausacionKmChart({ faseId, alcance, presentYear = 2025 }: Causac
     })
   })
 
+  const buildAnnotations = (
+    z: (number | null)[][],
+    xs: string[],
+    ys: string[],
+    fmt = (v: number) => v.toFixed(1)
+  ) => {
+    const anns: any[] = []
+    const vals = z.flat().filter((v): v is number => v !== null).sort((a, b) => a - b)
+    const idx = Math.floor(vals.length * 0.8)
+    const threshold = vals.length ? vals[idx] : 0
+
+    for (let i = 0; i < ys.length; i++) {
+      for (let j = 0; j < xs.length; j++) {
+        const v = z[i][j]
+        if (v === null) continue
+        anns.push({
+          xref: "x1",
+          yref: "y1",
+          x: xs[j],
+          y: ys[i],
+          text: fmt(v),
+          showarrow: false,
+          font: {
+            family: "Arial, sans-serif",
+            size: 11,
+            color: v >= threshold ? "white" : "black",
+          },
+        })
+      }
+    }
+    return anns
+  }
+
+  const annotations = buildAnnotations(zMatrix, alcances, categories)
+
   const heatmapData = {
     z: zMatrix,
     x: alcances,
     y: categories,
     type: "heatmap",
     colorscale: "YlOrRd",
+    reversescale: true,
     hovertemplate: "%{text}<extra></extra>",
     text: hoverText,
     showscale: true,
@@ -133,10 +167,12 @@ export function CausacionKmChart({ faseId, alcance, presentYear = 2025 }: Causac
               },
             },
             automargin: true,
+            autorange: "reversed",
           },
           margin: { l: 200, r: 150, t: 80, b: 100 },
           plot_bgcolor: "#FFFFFF",
           paper_bgcolor: "#FFFFFF",
+          annotations,
         }}
         config={{
           responsive: true,

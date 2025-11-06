@@ -175,38 +175,4 @@ export const api = {
     params.append('present_year', String(presentYear))
     return fetchAPI(`/charts/causacion-por-km?${params.toString()}`)
   },
-
-  // ---------- Estadísticas (como en tu archivo) ----------
-  async getEstadisticas() {
-    // Mantengo tu cálculo local a partir de /proyectos
-    const proyectos = await fetchAPI<Proyecto[]>('/proyectos')
-    const totalProyectos = proyectos.length
-    const inversionTotal = 1000000000 // placeholder como en tu comentario
-    const kmTotales = proyectos.reduce((sum, p) => sum + p.longitud, 0)
-
-    const distribucionFase = proyectos.reduce<Record<string, number>>((acc, p) => {
-      const faseNombre = p.fase?.nombre || 'Sin fase'
-      acc[faseNombre] = (acc[faseNombre] || 0) + 1
-      return acc
-    }, {})
-
-    const inversionPorMes = [
-      { mes: 'Ene', inversion: inversionTotal * 0.1 },
-      { mes: 'Feb', inversion: inversionTotal * 0.2 },
-      { mes: 'Mar', inversion: inversionTotal * 0.35 },
-      { mes: 'Abr', inversion: inversionTotal * 0.5 },
-      { mes: 'May', inversion: inversionTotal * 0.7 },
-      { mes: 'Jun', inversion: inversionTotal * 0.85 },
-      { mes: 'Jul', inversion: inversionTotal },
-    ]
-
-    return {
-      totalProyectos,
-      inversionTotal,
-      kmTotales,
-      distribucionFase,
-      inversionPorMes,
-      proyectosRecientes: proyectos.slice(0, 5),
-    }
-  },
 }

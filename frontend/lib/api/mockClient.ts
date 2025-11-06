@@ -187,14 +187,6 @@ export const api = {
     const baseCostPerKm = 6_000_000
     let multiplier = 1.0
 
-    if (data.ubicacion === 'Montañoso') multiplier *= 1.8
-    else if (data.ubicacion === 'Ondulado') multiplier *= 1.3
-
-    if (data.fase.includes('Fase II')) multiplier *= 1.5
-    else if (data.fase.includes('Fase III')) multiplier *= 2.2
-
-    multiplier *= 1 + data.num_ufs * 0.05
-
     let costoEstimado = 0
     let costoPorKm = 0
     if (data.unidades_funcionales?.length) {
@@ -276,38 +268,5 @@ export const api = {
 
   async getCausacionPorKm(_faseId?: number, _alcance?: string, _presentYear: number = 2025) {
     return null
-  },
-
-  // ---------- Estadísticas ----------
-  async getEstadisticas() {
-    await delay(400)
-    const totalProyectos = mockProyectos.length
-    const inversionTotal = mockCostos.reduce((sum, c) => sum + c.valor, 0)
-    const kmTotales = mockProyectos.reduce((sum, p) => sum + p.longitud, 0)
-
-    const distribucionFase = mockProyectos.reduce<Record<string, number>>((acc, p) => {
-      const faseNombre = p.fase?.nombre || 'Sin fase'
-      acc[faseNombre] = (acc[faseNombre] || 0) + 1
-      return acc
-    }, {})
-
-    const inversionPorMes = [
-      { mes: 'Ene', inversion: inversionTotal * 0.1 },
-      { mes: 'Feb', inversion: inversionTotal * 0.2 },
-      { mes: 'Mar', inversion: inversionTotal * 0.35 },
-      { mes: 'Abr', inversion: inversionTotal * 0.5 },
-      { mes: 'May', inversion: inversionTotal * 0.7 },
-      { mes: 'Jun', inversion: inversionTotal * 0.85 },
-      { mes: 'Jul', inversion: inversionTotal },
-    ]
-
-    return {
-      totalProyectos,
-      inversionTotal,
-      kmTotales,
-      distribucionFase,
-      inversionPorMes,
-      proyectosRecientes: mockProyectos.slice(0, 5),
-    }
   },
 }
