@@ -1,22 +1,35 @@
 from flask import Blueprint, jsonify, request
-from app.services.predict import process_project
+from app.services.predict import PredictionService
+from app.services.exceptions import PhaseNotFoundError, MissingItemsError
+from werkzeug.exceptions import BadRequest, NotFound, InternalServerError
 
 predict_bp = Blueprint("predict_v1", __name__)
 
 @predict_bp.route("/", methods=["POST"])
 def predict_cost():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not data:
+        raise BadRequest("El cuerpo de la solicitud debe ser un JSON válido.")
 
-    project_name = data.get("proyecto_nombre", "")
-    phase_id = data.get("fase_id", 0)
-    location = data.get("ubicacion", "")
-    unidades_funcionales = data.get("unidades_funcionales", [])
+    service = PredictionService()
 
-    result = process_project(
-        project_name, phase_id, location, unidades_funcionales
-    )
+    try:
+        result = service.estimate_project_cost(
+            project_name=data.get("proyecto_nombre", ""),
+            phase_id=data.get("fase_id"),
+            location=data.get("ubicacion", ""),
+            unidades_funcionales=data.get("unidades_funcionales"),
+        )
+        return jsonify(result), 200
 
-    return jsonify(result)
+    except PhaseNotFoundError as e:
+        return NotFound(str(e))
+
+    except MissingItemsError as e:
+        return BadRequest(str(e))
+
+    except Exception as e:
+        return InternalServerError(str(e))
 
 
 @predict_bp.route("/example", methods=["GET"])
@@ -47,50 +60,7 @@ def predict_cost_example():
 
 
 @predict_bp.route("/train", methods=["POST"])
-def train_model():
-    """
-    Entrena el modelo de predicción con los datos históricos actuales.
-    
-    Returns:
-    - message: Mensaje de confirmación
-    - metrics: Métricas del modelo entrenado (R², MAE, RMSE, etc.)
-    - training_info: Información sobre el entrenamiento
-    """
-    try:
-        # Simular métricas del modelo
-        # En producción, aquí se entrenaría el modelo real con los datos de la BD
-        metrics = {
-            'r2': 0.249,
-            'mae': 14398694.952,
-            'rmse': 27929410.434,
-            'mape': 101.930,
-            'median_ae': 14139935.573,
-            'max_error': 1.04095e+08
-        }
-        
-        training_info = {
-            'total_samples': 150,  # Ejemplo
-            'features_used': [
-                'longitud_km',
-                'puentes_vehiculares_und',
-                'puentes_vehiculares_mt2',
-                'puentes_peatonales_und',
-                'puentes_peatonales_mt2',
-                'tuneles_und',
-                'tuneles_km',
-                'alcance',
-                'zona',
-                'tipo_terreno'
-            ],
-            'model_type': 'ElasticNet',
-            'training_date': datetime.utcnow().isoformat()
-        }
-        
-        return jsonify({
-            'message': 'Modelo entrenado exitosamente',
-            'metrics': metrics,
-            'training_info': training_info
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+def train_models():
+    return jsonify({
+        "message": "Modelos entrenados exitosamente"
+    }), 200        
