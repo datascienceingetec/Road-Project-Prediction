@@ -88,6 +88,8 @@ export default function PrediccionPage() {
 
   const handlePredict = async () => {
     setLoading(true)
+    setSelectedItem(null)
+    setModelMetrics({})
 
     const predictionData = await api.predictCosto({
       proyecto_nombre: formData.nombre,

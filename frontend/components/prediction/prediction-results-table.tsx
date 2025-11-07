@@ -51,7 +51,7 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[400px]">
           <thead className="bg-gray-50 border-b border-[#dee2e6]">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -60,7 +60,8 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Causación Estimada
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* 👇 Ocultar columna en pantallas pequeñas */}
+              <th className="hidden md:table-cell px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 % del Total
               </th>
             </tr>
@@ -70,8 +71,8 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
               const percentage = totalCausacion > 0 ? (item.causacion_estimada / totalCausacion) * 100 : 0
               const isSelected = selectedItem?.item === item.item
               return (
-                <tr 
-                  key={index} 
+                <tr
+                  key={index}
                   className={`transition-colors cursor-pointer ${
                     isSelected 
                       ? 'bg-primary/10 hover:bg-primary/15' 
@@ -92,7 +93,8 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
                     {formatCurrency(item.causacion_estimada)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                  {/* 👇 Esta celda también se oculta en pantallas pequeñas */}
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
                     }`}>
@@ -109,7 +111,8 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
               <td className="px-6 py-4 whitespace-nowrap text-right text-base font-bold text-primary">
                 {formatCurrency(totalCausacion)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right">
+              {/* 👇 También se oculta el total de porcentaje en móvil */}
+              <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-white">
                   100%
                 </span>
