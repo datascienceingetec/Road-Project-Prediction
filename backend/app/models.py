@@ -1,7 +1,8 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum, select, func
+from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum, StatusEnum
 
 db = SQLAlchemy()
@@ -37,7 +38,7 @@ class Proyecto(db.Model):
     nombre = Column(String(200), nullable=False)
     anio_inicio = Column(Integer)
     duracion = Column(Integer)
-    longitud = Column(Float)
+    # longitud is now computed from unidades_funcionales
     ubicacion = Column(String(200))
     lat_inicio = Column(Float)
     lng_inicio = Column(Float)
@@ -51,6 +52,21 @@ class Proyecto(db.Model):
     unidades_funcionales = relationship('UnidadFuncional', back_populates='proyecto', lazy='dynamic', cascade='all, delete-orphan')
     costos = relationship('CostoItem', back_populates='proyecto', lazy='dynamic', cascade='all, delete-orphan')
     
+    # Computed properties
+    @hybrid_property
+    def longitud(self):
+        """Computed: sum of longitud_km from all unidades_funcionales"""
+        return db.session.query(func.coalesce(func.sum(UnidadFuncional.longitud_km), 0)).filter(
+            UnidadFuncional.proyecto_id == self.id
+        ).scalar() or 0
+    
+    @hybrid_property
+    def num_unidades_funcionales(self):
+        """Computed: count of unidades_funcionales"""
+        return db.session.query(func.count(UnidadFuncional.id)).filter(
+            UnidadFuncional.proyecto_id == self.id
+        ).scalar() or 0
+    
     def to_dict(self, include_relations=False):
         data = {
             'id': self.id,
@@ -59,6 +75,7 @@ class Proyecto(db.Model):
             'anio_inicio': self.anio_inicio,
             'duracion': self.duracion,
             'longitud': self.longitud,
+            'num_unidades_funcionales': self.num_unidades_funcionales,
             'ubicacion': self.ubicacion,
             'lat_inicio': self.lat_inicio,
             'lng_inicio': self.lng_inicio,
@@ -143,23 +160,30 @@ class FaseItemRequerido(db.Model):
     id = Column(Integer, primary_key=True)
     fase_id = Column(Integer, ForeignKey('fases.id'), nullable=False)
     item_tipo_id = Column(Integer, ForeignKey('item_tipo.id'), nullable=False)
+    parent_id = Column(Integer, ForeignKey('fase_item_requerido.id'), nullable=True)
     obligatorio = Column(Boolean, default=True)
     descripcion = Column(Text)
     
     # Relationships
     fase = relationship('Fase', back_populates='items_requeridos')
     item_tipo = relationship('ItemTipo', back_populates='fases_requeridas')
+    parent = relationship('FaseItemRequerido', remote_side=[id], backref='children')
     
-    def to_dict(self):
-        return {
+    def to_dict(self, include_children=False):
+        data = {
             'id': self.id,
             'fase_id': self.fase_id,
             'item_tipo_id': self.item_tipo_id,
+            'parent_id': self.parent_id,
             'obligatorio': self.obligatorio,
             'descripcion': self.descripcion,
             'fase': self.fase.to_dict() if self.fase else None,
-            'item_tipo': self.item_tipo.to_dict() if self.item_tipo else None
+            'item_tipo': self.item_tipo.to_dict() if self.item_tipo else None,
+            'has_children': bool(self.children)
         }
+        if include_children:
+            data['children'] = [child.to_dict() for child in self.children]
+        return data
 
 
 class CostoItem(db.Model):

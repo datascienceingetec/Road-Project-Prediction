@@ -37,8 +37,12 @@ ITEM_FASE_MAPPING = {
         'Socioeconómica', 'Dirección y Coordinación'
     ],
     'fase_iii': [
-        'Transporte', 'Información Geográfica', 'Trazado y Diseño Geométrico',
-        'Seguridad Vial', 'Sistemas Inteligentes', 'Geología', 'Hidrogeología',
+        'Transporte', 
+        'Estudio de Trazado y Diseño Geométrico',  # Parent item
+        'Información Geográfica', 'Trazado y Diseño Geométrico',
+        'Seguridad Vial', 'Sistemas Inteligentes', 
+        'Geología para Ingeniería',  # Parent item
+        'Geología', 'Hidrogeología',
         'Suelos', 'Taludes', 'Pavimento', 'Socavación', 'Estructuras', 'Túneles',
         'Urbanismo y Paisajismo', 'Predial', 'Impacto Ambiental', 'Cantidades',
         'Evaluación Socioeconómica', 'Otros - Manejo de Redes', 'Dirección y Coordinación'
@@ -123,12 +127,14 @@ def initialize_catalog_data(app):
             },
             'fase_iii': {
                 "Transporte": "1 - TRANSPORTE",
-                "Información Geográfica": "2.1 - INFORMACIÓN GEOGRÁFICA",
-                "Trazado y Diseño Geométrico": "2.2 - TRAZADO Y DISEÑO GEOMÉTRICO",
-                "Seguridad Vial": "2.3 - SEGURIDAD VIAL",
+                "Estudio de Trazado y Diseño Geométrico": "2 - ESTUDIO DE TRAZADO Y DISEÑO GEOMÉTRICO",
+                "Información Geográfica": "2.1 - INFORMACIÓN GEOGRÁFICA", 
+                "Trazado y Diseño Geométrico": "2.2 - TRAZADO Y DISEÑO GEOMÉTRICO", 
+                "Seguridad Vial": "2.3 - SEGURIDAD VIAL", 
                 "Sistemas Inteligentes": "2.4 - SISTEMAS INTELIGENTES",
+                "Geología para Ingeniería": "3 - GEOLOGÍA PARA INGENIERÍA",
                 "Geología": "3.1 - GEOLOGÍA",
-                "Hidrogeología": "3.2 - HIDROGEOLOGÍA",
+                "Hidrogeología": "3.2 - HIDROGEOLOGÍA", 
                 "Suelos": "4 - SUELOS",
                 "Taludes": "5 - TALUDES",
                 "Pavimento": "6 - PAVIMENTO",
@@ -145,6 +151,22 @@ def initialize_catalog_data(app):
             }
         }
         
+        # Definir relaciones parent-child para Fase III
+        PARENT_CHILD_RELATIONS = {
+            'fase_iii': {
+                'Estudio de Trazado y Diseño Geométrico': [
+                    'Información Geográfica',
+                    'Trazado y Diseño Geométrico',
+                    'Seguridad Vial',
+                    'Sistemas Inteligentes'
+                ],
+                'Geología para Ingeniería': [
+                    'Geología',
+                    'Hidrogeología'
+                ]
+            }
+        }
+        
         # Crear relaciones FaseItemRequerido
         fase_item_map = {
             'Fase I - Prefactibilidad': ('fase_i', ITEM_FASE_MAPPING['fase_i']),
@@ -152,7 +174,10 @@ def initialize_catalog_data(app):
             'Fase III - Diseño Detallado': ('fase_iii', ITEM_FASE_MAPPING['fase_iii'])
         }
         
+        # First pass: Create all items without parent_id
+        fase_item_records = {}  # Map (fase_id, item_tipo_id) -> FaseItemRequerido.id
         count = 0
+        
         for fase_nombre, (fase_key, items) in fase_item_map.items():
             fase = fases[fase_nombre]
             labels = ITEM_LABELS[fase_key]
@@ -163,19 +188,61 @@ def initialize_catalog_data(app):
                     fase_id=fase.id,
                     item_tipo_id=item_tipo.id
                 ).first()
+                
                 if not existing:
                     label = labels.get(item_name, item_name)
                     fase_item_req = FaseItemRequerido(
                         fase_id=fase.id,
                         item_tipo_id=item_tipo.id,
                         obligatorio=True,
-                        descripcion=label
+                        descripcion=label,
+                        parent_id=None  # Will be set in second pass
                     )
                     db.session.add(fase_item_req)
+                    db.session.flush()  # Get ID immediately
+                    fase_item_records[(fase.id, item_tipo.id)] = fase_item_req.id
                     count += 1
+                else:
+                    fase_item_records[(fase.id, item_tipo.id)] = existing.id
         
         db.session.commit()
         print(f"✓ Creadas {count} relaciones fase-item")
+        
+        # Second pass: Set parent_id for child items
+        parent_count = 0
+        for fase_nombre, (fase_key, items) in fase_item_map.items():
+            if fase_key not in PARENT_CHILD_RELATIONS:
+                continue
+            
+            fase = fases[fase_nombre]
+            parent_child_map = PARENT_CHILD_RELATIONS[fase_key]
+            
+            for parent_name, children_names in parent_child_map.items():
+                parent_item_tipo = item_tipos[parent_name]
+                parent_key = (fase.id, parent_item_tipo.id)
+                
+                if parent_key not in fase_item_records:
+                    print(f"  ⚠ Parent item '{parent_name}' not found in fase {fase_nombre}")
+                    continue
+                
+                parent_id = fase_item_records[parent_key]
+                
+                for child_name in children_names:
+                    child_item_tipo = item_tipos[child_name]
+                    child_key = (fase.id, child_item_tipo.id)
+                    
+                    if child_key not in fase_item_records:
+                        print(f"  ⚠ Child item '{child_name}' not found in fase {fase_nombre}")
+                        continue
+                    
+                    # Update child to point to parent
+                    child_record = db.session.get(FaseItemRequerido, fase_item_records[child_key])
+                    if child_record and not child_record.parent_id:
+                        child_record.parent_id = parent_id
+                        parent_count += 1
+        
+        db.session.commit()
+        print(f"✓ Establecidas {parent_count} relaciones parent-child")
         
         # Retornar IDs en lugar de objetos para evitar DetachedInstanceError
         fase_ids = {fase.nombre: fase.id for fase in fases.values()}
@@ -280,7 +347,7 @@ def migrate_proyectos(old_data, fase_ids, app):
                 nombre=old_proyecto['nombre'],
                 anio_inicio=old_proyecto.get('anio_inicio'),
                 duracion=old_proyecto.get('duracion'),
-                longitud=old_proyecto.get('longitud'),
+                # longitud is now computed from unidades_funcionales
                 ubicacion=old_proyecto.get('ubicacion'),
                 lat_inicio=old_proyecto.get('lat_inicio'),
                 lng_inicio=old_proyecto.get('lng_inicio'),
