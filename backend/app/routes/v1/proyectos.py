@@ -42,7 +42,7 @@ def create_proyecto():
         nombre=data['nombre'],
         anio_inicio=data.get('anio_inicio'),
         duracion=data.get('duracion'),
-        longitud=data.get('longitud'),
+        # longitud is computed from unidades_funcionales
         ubicacion=data.get('ubicacion'),
         lat_inicio=data.get('lat_inicio'),
         lng_inicio=data.get('lng_inicio'),
@@ -72,8 +72,7 @@ def update_proyecto_by_codigo(codigo):
         proyecto.anio_inicio = data['anio_inicio']
     if 'duracion' in data:
         proyecto.duracion = data['duracion']
-    if 'longitud' in data:
-        proyecto.longitud = data['longitud']
+    # longitud is computed from unidades_funcionales, cannot be updated directly
     if 'ubicacion' in data:
         proyecto.ubicacion = data['ubicacion']
     if 'lat_inicio' in data:
@@ -115,17 +114,52 @@ def get_unidades_funcionales(codigo):
 
 @proyectos_bp.route('/<codigo>/costos', methods=['GET'])
 def get_costos(codigo):
-    """Get all costs for a project"""
+    """Get all costs for a project with calculated values for parent items"""
     proyecto = Proyecto.query.filter_by(codigo=codigo).first()
     if not proyecto:
         return jsonify({'error': f'Proyecto {codigo} no encontrado'}), 404
     
+    from app.models import FaseItemRequerido
+    from app.utils import sort_items_by_description
+    
+    # Get fase items
+    items_requeridos = FaseItemRequerido.query.filter_by(fase_id=proyecto.fase_id).all()
+    items_ordenados = sort_items_by_description(items_requeridos)
+    
+    # Get costos
     costos = CostoItem.query.filter_by(proyecto_id=proyecto.id).all()
-    return jsonify([c.to_dict() for c in costos]), 200
+    costos_map = {c.item_tipo_id: c.valor for c in costos}
+    
+    # Build parent-child map
+    parent_child_map = {}
+    for item in items_requeridos:
+        if item.parent_id:
+            parent_item = next((i for i in items_requeridos if i.id == item.parent_id), None)
+            if parent_item:
+                if parent_item.item_tipo_id not in parent_child_map:
+                    parent_child_map[parent_item.item_tipo_id] = []
+                parent_child_map[parent_item.item_tipo_id].append(item.item_tipo_id)
+    
+    # Calculate values recursively
+    def get_item_value(item_tipo_id):
+        if item_tipo_id in parent_child_map:
+            # Sum children
+            return sum(get_item_value(child_id) for child_id in parent_child_map[item_tipo_id])
+        return costos_map.get(item_tipo_id, 0)
+    
+    # Build result with fase items and calculated costs
+    result = []
+    for item in items_ordenados:
+        item_dict = item.to_dict()
+        item_dict['valor_calculado'] = get_item_value(item.item_tipo_id)
+        result.append(item_dict)
+    
+    return jsonify(result), 200
 
 @proyectos_bp.route('/<codigo>/costos', methods=['POST'])
 def create_or_update_costos(codigo):
-    """Create or update costs for a project. Expects array of {item_tipo_id, valor}"""
+    """Create or update costs for a project. Expects array of {item_tipo_id, valor}
+    Parent items are automatically calculated from their children."""
     proyecto = Proyecto.query.filter_by(codigo=codigo).first()
     if not proyecto:
         return jsonify({'error': f'Proyecto {codigo} no encontrado'}), 404
@@ -136,14 +170,33 @@ def create_or_update_costos(codigo):
     if not isinstance(costos_data, list):
         return jsonify({'error': 'Se espera un array de costos'}), 400
     
+    # Get all fase items to identify parent-child relationships
+    from app.models import FaseItemRequerido
+    fase_items = FaseItemRequerido.query.filter_by(fase_id=proyecto.fase_id).all()
+    
+    # Build parent-child map
+    parent_map = {}  # parent_id -> [child_item_tipo_ids]
+    for item in fase_items:
+        if item.parent_id:
+            if item.parent_id not in parent_map:
+                parent_map[item.parent_id] = []
+            parent_map[item.parent_id].append(item.item_tipo_id)
+    
+    # Find parent item_tipo_ids
+    parent_item_tipo_ids = set()
+    for item in fase_items:
+        if item.id in parent_map:
+            parent_item_tipo_ids.add(item.item_tipo_id)
+    
     created = 0
     updated = 0
     
+    # First, save all non-parent items
     for costo_data in costos_data:
         item_tipo_id = costo_data.get('item_tipo_id')
         valor = costo_data.get('valor', 0)
         
-        if not item_tipo_id:
+        if not item_tipo_id or item_tipo_id in parent_item_tipo_ids:
             continue
         
         # Check if cost already exists
@@ -163,6 +216,40 @@ def create_or_update_costos(codigo):
             )
             db.session.add(costo)
             created += 1
+    
+    db.session.commit()
+    
+    # Now calculate and save parent items
+    for fase_item in fase_items:
+        if fase_item.id in parent_map:
+            # This is a parent item, calculate sum of children
+            child_item_tipo_ids = parent_map[fase_item.id]
+            total = 0
+            for child_id in child_item_tipo_ids:
+                child_costo = CostoItem.query.filter_by(
+                    proyecto_id=proyecto.id,
+                    item_tipo_id=child_id
+                ).first()
+                if child_costo:
+                    total += child_costo.valor
+            
+            # Update or create parent cost
+            existing_parent = CostoItem.query.filter_by(
+                proyecto_id=proyecto.id,
+                item_tipo_id=fase_item.item_tipo_id
+            ).first()
+            
+            if existing_parent:
+                existing_parent.valor = total
+                updated += 1
+            else:
+                parent_costo = CostoItem(
+                    proyecto_id=proyecto.id,
+                    item_tipo_id=fase_item.item_tipo_id,
+                    valor=total
+                )
+                db.session.add(parent_costo)
+                created += 1
     
     db.session.commit()
     return jsonify({

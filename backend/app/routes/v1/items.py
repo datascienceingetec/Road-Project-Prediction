@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from app.models import db, ItemTipo, FaseItemRequerido
+from app.models import db, ItemTipo
 
 items_bp = Blueprint("items_v1", __name__)
 

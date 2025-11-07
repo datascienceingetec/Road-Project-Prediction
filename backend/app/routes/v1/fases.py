@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request
-from app.models import db, Fase, ItemTipo, FaseItemRequerido
+from flask import Blueprint, request, jsonify
+from app.models import db, Fase, FaseItemRequerido, ItemTipo
+from app.utils import sort_items_by_description
 
-fases_bp = Blueprint("fases_v1", __name__)
+fases_bp = Blueprint('fases', __name__)
 
 @fases_bp.route('/', methods=['GET'], strict_slashes=False)
 def get_fases():
@@ -24,8 +25,17 @@ def get_fase_items(fase_id):
     if not fase:
         return jsonify({'error': 'Fase no encontrada'}), 404
     
-    items_requeridos = FaseItemRequerido.query.filter_by(fase_id=fase_id).all()
-    return jsonify([ir.to_dict() for ir in items_requeridos])
+    include_children = request.args.get('include_children', 'false').lower() == 'true'
+    
+    items_requeridos = (
+        FaseItemRequerido.query
+        .filter_by(fase_id=fase_id)
+        .all()
+    )
+
+    items_ordenados = sort_items_by_description(items_requeridos)
+
+    return jsonify([ir.to_dict(include_children=include_children) for ir in items_ordenados])
 
 @fases_bp.route('/', methods=['POST'])
 def create_fase():
