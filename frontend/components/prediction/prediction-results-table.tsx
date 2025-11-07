@@ -8,6 +8,7 @@ export interface ItemCosto {
   item_tipo_id: number
   causacion_estimada: number
   metrics?: PredictionMetrics
+  is_parent?: boolean
 }
 
 interface PredictionResultsTableProps {
@@ -41,7 +42,10 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
     )
   }
 
-  const totalCausacion = items.reduce((sum, item) => sum + item.causacion_estimada, 0)
+  // Calculate total excluding parent items to avoid double counting
+  const totalCausacion = items.reduce((sum, item) => {
+    return sum + (item.is_parent ? 0 : item.causacion_estimada)
+  }, 0)
 
   return (
     <div className="bg-white rounded-xl border border-[#dee2e6] overflow-hidden">
@@ -70,33 +74,56 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
             {items.map((item, index) => {
               const percentage = totalCausacion > 0 ? (item.causacion_estimada / totalCausacion) * 100 : 0
               const isSelected = selectedItem?.item === item.item
+              const isParent = item.is_parent || false
+              const isClickable = !isParent
+              
               return (
                 <tr
                   key={index}
-                  className={`transition-colors cursor-pointer ${
-                    isSelected 
-                      ? 'bg-primary/10 hover:bg-primary/15' 
-                      : 'hover:bg-gray-50'
+                  className={`transition-colors ${
+                    isParent
+                      ? 'bg-blue-50 cursor-default'
+                      : isSelected 
+                        ? 'bg-primary/10 hover:bg-primary/15 cursor-pointer' 
+                        : 'hover:bg-gray-50 cursor-pointer'
                   }`}
-                  onClick={() => onItemClick?.(item)}
+                  onClick={() => isClickable && onItemClick?.(item)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className={`material-symbols-outlined mr-2 text-sm ${isSelected ? 'text-primary' : 'text-primary'}`}>
-                        {isSelected ? 'radio_button_checked' : 'check_circle'}
-                      </span>
-                      <span className={`text-sm font-medium ${isSelected ? 'text-primary' : 'text-gray-900'}`}>
+                      {isParent ? (
+                        <span className="material-symbols-outlined mr-2 text-sm text-blue-600">
+                          functions
+                        </span>
+                      ) : (
+                        <span className={`material-symbols-outlined mr-2 text-sm ${isSelected ? 'text-primary' : 'text-primary'}`}>
+                          {isSelected ? 'radio_button_checked' : 'check_circle'}
+                        </span>
+                      )}
+                      <span className={`text-sm font-medium ${
+                        isParent 
+                          ? 'text-blue-900' 
+                          : isSelected 
+                            ? 'text-primary' 
+                            : 'text-gray-900'
+                      }`}>
                         {item.item}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                  <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${
+                    isParent ? 'text-blue-900' : 'text-gray-900'
+                  }`}>
                     {formatCurrency(item.causacion_estimada)}
                   </td>
                   {/* 👇 Esta celda también se oculta en pantallas pequeñas */}
                   <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                      isParent
+                        ? 'bg-blue-200 text-blue-800'
+                        : isSelected 
+                          ? 'bg-primary text-white' 
+                          : 'bg-primary/10 text-primary'
                     }`}>
                       {percentage.toFixed(1)}%
                     </span>

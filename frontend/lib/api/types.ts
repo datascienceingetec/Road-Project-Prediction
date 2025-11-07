@@ -8,7 +8,8 @@ export interface Proyecto {
   id: number
   nombre: string
   codigo: string
-  longitud: number
+  longitud: number  // Computed from unidades_funcionales
+  num_unidades_funcionales: number  // Computed count
   anio_inicio: number
   duracion: number | null
   fase_id: number
@@ -57,10 +58,14 @@ export interface FaseItemRequerido {
   id: number
   fase_id: number
   item_tipo_id: number
+  parent_id: number | null
   obligatorio: boolean
   descripcion: string | null
   fase: Fase | null
   item_tipo: ItemTipo | null
+  has_children?: boolean
+  valor_calculado?: number
+  children?: FaseItemRequerido[]
 }
 
 export interface EnumOption {

@@ -60,6 +60,8 @@ export function ProjectsTable({
   const paginatedProyectos = showPagination
     ? filteredProyectos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     : filteredProyectos
+
+  // TODO: Replace with dynamic colors
   const getFaseBadge = (faseNombre?: string) => {
     if (!faseNombre) {
       return "inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-gray-700 bg-gray-100"
@@ -115,10 +117,13 @@ export function ProjectsTable({
               <th className="px-4 py-3 text-left text-white/90 w-48 text-sm font-semibold leading-normal">
                 Fase
               </th>
-              <th className="px-4 py-3 text-left text-white/90 text-sm font-semibold leading-normal">
+              <th className="px-4 py-3 text-right text-white/90 text-sm font-semibold leading-normal">
+                Unidades Funcionales
+              </th>
+              <th className="px-4 py-3 text-right text-white/90 text-sm font-semibold leading-normal">
                 Longitud (km)
               </th>
-              <th className="px-4 py-3 text-left text-white/90 text-sm font-semibold leading-normal">
+              <th className="px-4 py-3 text-right text-white/90 text-sm font-semibold leading-normal">
                 Año Inicio
               </th>
               {showActions && (
@@ -157,10 +162,13 @@ export function ProjectsTable({
                     {proyecto.fase?.nombre || "Sin fase"}
                   </span>
                 </td>
-                <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
+                <td className="h-[72px] px-4 py-2 text-right text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
+                  {proyecto.num_unidades_funcionales}
+                </td>
+                <td className="h-[72px] px-4 py-2 text-right text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
                   {proyecto.longitud.toFixed(2)}
                 </td>
-                <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
+                <td className="h-[72px] px-4 py-2 text-right text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">
                   {proyecto.anio_inicio}
                 </td>
                 {showActions && (

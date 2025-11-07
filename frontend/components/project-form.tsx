@@ -15,7 +15,7 @@ interface ProjectFormProps {
 export interface ProjectFormData {
   nombre: string
   codigo: string
-  longitud: number
+  // longitud is computed from unidades_funcionales
   anio_inicio: number
   duracion: number
   fase_id: number
@@ -32,7 +32,7 @@ export default function ProjectForm({ mode, initialData, onSubmit, onCancel, bre
   const [formData, setFormData] = useState<ProjectFormData>({
     nombre: initialData?.nombre || "",
     codigo: initialData?.codigo || "",
-    longitud: initialData?.longitud || 0,
+    // longitud is computed from unidades_funcionales
     anio_inicio: initialData?.anio_inicio || new Date().getFullYear(),
     duracion: initialData?.duracion || 0,
     fase_id: initialData?.fase_id || 0,
@@ -175,27 +175,7 @@ export default function ProjectForm({ mode, initialData, onSubmit, onCancel, bre
             </div>
           </div>
 
-          {/* Características Técnicas */}
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e293b] p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Características Técnicas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Longitud (km) *
-                </label>
-                <input
-                  type="number"
-                  name="longitud"
-                  value={formData.longitud}
-                  onChange={handleChange}
-                  step="0.1"
-                  required
-                  placeholder="0.0"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Note: Longitud is computed from unidades_funcionales */}
 
           {/* Cronograma */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e293b] p-6">

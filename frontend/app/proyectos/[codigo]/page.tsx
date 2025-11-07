@@ -38,12 +38,9 @@ export default function ProjectDetailPage() {
       setUnidades(unidadesData)
 
       if (proyectoData.fase_id) {
-        const faseItemsData = await api.getFaseItems(proyectoData.fase_id)
-        setFaseItems(faseItemsData)
-
-        const costosData = await api.getCostos(codigo)
-        const filteredCostos = costosData.filter((c) => faseItemsData.some((fi) => fi.item_tipo_id === c.item_tipo_id))
-        setCostos(filteredCostos)
+        const faseItemsConCostos = await api.getCostos(codigo)
+        setFaseItems(faseItemsConCostos)
+        setCostos([])
       }
 
 
@@ -159,7 +156,7 @@ export default function ProjectDetailPage() {
           <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">{proyecto.duracion}</p>
         </div>
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
-          <p className="text-gray-500 text-sm font-medium leading-normal">Longitud (km)</p>
+          <p className="text-gray-500 text-sm font-medium leading-normal">Longitud Total (km)</p>
           <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
             {proyecto.longitud.toFixed(2)}
           </p>
@@ -167,7 +164,7 @@ export default function ProjectDetailPage() {
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
           <p className="text-gray-500 text-sm font-medium leading-normal">Costo Total</p>
           <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
-            {formatCurrency(costos.reduce((sum, c) => sum + c.valor, 0))}
+            {formatCurrency(faseItems.reduce((sum, item) => sum + (item.valor_calculado || 0), 0))}
           </p>
         </div>
       </section>
@@ -262,15 +259,19 @@ export default function ProjectDetailPage() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {faseItems.length > 0 ? (
                     faseItems.map((item) => {
-                      // Buscar el costo correspondiente a este item
-                      const costo = costos.find((c) => c.item_tipo_id === item.item_tipo_id)
+                      const isParent = item.has_children || false
+                      const valor = item.valor_calculado || 0
+                      
                       return (
-                        <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-sm font-medium text-gray-700">
+                        <div 
+                          key={item.id} 
+                          className="flex justify-between items-center py-2 border-b border-gray-100"
+                        >
+                          <span className={`text-sm font-medium ${isParent ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}>
                             {item.descripcion || item.item_tipo?.nombre || "Item desconocido"}
                           </span>
-                          <span className="text-sm font-bold text-gray-900">
-                            {costo ? formatCurrency(costo.valor) : formatCurrency(0)}
+                          <span className={`text-sm font-bold ${isParent ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {formatCurrency(valor)}
                           </span>
                         </div>
                       )
@@ -304,7 +305,6 @@ export default function ProjectDetailPage() {
         onSave={loadData}
         codigoProyecto={codigo}
         faseItems={faseItems}
-        costosActuales={costos}
       />
     </main>
   )

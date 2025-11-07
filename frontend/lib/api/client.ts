@@ -85,7 +85,7 @@ export const api = {
   },
 
   // ---------- Costos (Items) ----------
-  getCostos(codigo: string): Promise<CostoItem[]> {
+  getCostos(codigo: string): Promise<FaseItemRequerido[]> {
     return fetchAPI(`/proyectos/${codigo}/costos`)
   },
 
@@ -137,7 +137,6 @@ export const api = {
 
   // ---------- Predicción ----------
   getPrediction(data: PredictionRequest): Promise<PredictionResponse> {
-    console.log(data) 
     return fetchAPI('/predict/', { method: 'POST', body: JSON.stringify(data) })
   },
 
