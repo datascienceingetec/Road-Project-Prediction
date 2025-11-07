@@ -97,6 +97,9 @@ export interface PredictionRequest {
 }
 
 export interface PredictionResponse {
+  proyecto_nombre: string
+  fase_id: number
+  ubicacion: string
   costo_estimado: number
   costo_por_km: number
   confianza: number
@@ -104,15 +107,17 @@ export interface PredictionResponse {
     item: string
     item_tipo_id: number
     causacion_estimada: number
+    metrics?: PredictionMetrics
   }>
-  metrics?: {
-    r2?: number
-    mae?: number
-    rmse?: number
-    mape?: number
-    median_ae?: number
-    max_error?: number
-  }
+}
+
+export interface PredictionMetrics {
+  r2?: number
+  mae?: number
+  rmse?: number
+  mape?: number
+  median_ae?: number
+  max_error?: number
 }
 
 export interface Scenario {

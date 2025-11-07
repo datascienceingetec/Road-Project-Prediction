@@ -39,6 +39,12 @@ export function ModelMetrics({ metrics }: ModelMetricsProps) {
         </h3>
       </div>
 
+      {metricsList.filter((m) => m.value !== undefined).length === 0 && (
+        <div className="p-4">
+          <p className="text-gray-500 text-sm">No hay métricas disponibles. Predicción simulada.</p>
+        </div>
+      )}
+      
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4">
         {metricsList.map(
           (m) =>

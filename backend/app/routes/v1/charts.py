@@ -322,18 +322,22 @@ def get_causacion_por_km():
         current_app.logger.exception("Error al generar causación por km")
         return jsonify({'error': str(e)}), 500
 
+
 @charts_bp.route('/item-comparison', methods=['GET'])
 def get_item_comparison():
     """
     Endpoint para obtener datos de comparación histórica de un ítem específico (versión detallada por UF).
-    
+
+    Aplica pesos por longitud de las unidades funcionales (UF) dentro de cada proyecto,
+    de modo que el costo total del ítem se distribuya proporcionalmente según la longitud_km de cada UF.
+
     Query Parameters:
     - item_tipo_id: ID del tipo de ítem a comparar (requerido)
     - fase_id: ID de la fase (opcional, filtra por fase)
     - present_year: Año presente para cálculo de valor presente. Default: 2025
-    
+
     Returns:
-    - historical_data: Lista de UFs con el ítem calculado a valor presente
+    - historical_data: Lista de UFs con el ítem calculado a valor presente (ponderado)
     - trend_line: Línea de regresión lineal global
     - metadata: Información sobre el ítem y filtros aplicados
     """
@@ -377,35 +381,57 @@ def get_item_comparison():
             query = query.filter(Proyecto.fase_id == fase_id)
 
         results = query.all()
-
         if not results:
-            return jsonify({'historical_data': [], 'trend_line': None, 'metadata': {
-                'item_nombre': item_tipo.nombre,
-                'item_tipo_id': item_tipo.id,
-                'fase_id': fase_id,
-                'present_year': present_year,
-                'total_projects': 0
-            }})
+            return jsonify({
+                'historical_data': [],
+                'trend_line': None,
+                'metadata': {
+                    'item_nombre': item_tipo.nombre,
+                    'item_tipo_id': item_tipo.id,
+                    'fase_id': fase_id,
+                    'present_year': present_year,
+                    'total_projects': 0
+                }
+            })
 
-        # --- Construir dataset detallado (por UF) ---
+        # ----------------------------------------------------------------------
+        # 1️⃣ Calcular longitud total por proyecto (para obtener pesos relativos)
+        # ----------------------------------------------------------------------
+        project_lengths = {}
+        for row in results:
+            project_lengths[row.codigo] = project_lengths.get(row.codigo, 0) + float(row.longitud_km)
+
+        # ----------------------------------------------------------------------
+        # 2️⃣ Construir dataset detallado (por UF) aplicando pesos por longitud
+        # ----------------------------------------------------------------------
         historical_data = []
         for row in results:
-            # Calcular valor presente a nivel de ítem individual (por UF)
-            costo_vp = calculate_present_value(row.valor_item, row.anio_inicio, present_year)
-            
+            total_length = project_lengths.get(row.codigo, 0)
+            uf_weight = float(row.longitud_km) / total_length if total_length > 0 else 0.0
+
+            # Valor total del ítem (a nivel proyecto)
+            costo_vp_total = calculate_present_value(row.valor_item, row.anio_inicio, present_year)
+
+            # Ponderar el costo por longitud de la UF
+            costo_vp_ponderado = costo_vp_total * uf_weight
+
             historical_data.append({
                 'codigo': row.codigo,
                 'nombre': row.nombre,
                 'anio_inicio': row.anio_inicio,
                 'fase': row.fase_nombre,
-                'alcance': row.alcance.value if row.alcance else 'Sin especificar',
+                'alcance': row.alcance.value if hasattr(row.alcance, 'value') else (row.alcance or 'Sin especificar'),
                 'longitud_km': float(row.longitud_km),
-                'costo_total_vp': float(costo_vp),
-                'costo_millones': float(costo_vp / 1_000_000),
-                'unidades_funcionales': 1  # cada fila es una UF individual
+                'longitud_total_proyecto': float(total_length),
+                'peso_longitud': round(uf_weight, 4),
+                'costo_total_vp': float(costo_vp_ponderado),
+                'costo_millones': float(costo_vp_ponderado / 1_000_000),
+                'unidades_funcionales': 1
             })
 
-        # --- Calcular regresión lineal sobre los puntos UF ---
+        # ----------------------------------------------------------------------
+        # 3️⃣ Calcular línea de tendencia global (regresión lineal por UF)
+        # ----------------------------------------------------------------------
         valid_data = [p for p in historical_data if p['longitud_km'] > 0 and p['costo_millones'] > 0]
         trend_line = None
 
@@ -425,6 +451,9 @@ def get_item_comparison():
                 'intercept': float(model.intercept_)
             }
 
+        # ----------------------------------------------------------------------
+        # 4️⃣ Responder datos ponderados por longitud
+        # ----------------------------------------------------------------------
         return jsonify({
             'historical_data': historical_data,
             'trend_line': trend_line,
@@ -433,7 +462,8 @@ def get_item_comparison():
                 'item_tipo_id': item_tipo.id,
                 'fase_id': fase_id,
                 'present_year': present_year,
-                'total_projects': len(historical_data)
+                'total_projects': len(set([p['codigo'] for p in historical_data])),
+                'total_ufs': len(historical_data)
             }
         })
 

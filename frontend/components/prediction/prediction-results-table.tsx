@@ -1,11 +1,13 @@
 "use client"
 
 import { formatCurrency } from "@/lib/utils"
+import { PredictionMetrics } from "@/lib/api/types"
 
 export interface ItemCosto {
   item: string
   item_tipo_id: number
   causacion_estimada: number
+  metrics?: PredictionMetrics
 }
 
 interface PredictionResultsTableProps {

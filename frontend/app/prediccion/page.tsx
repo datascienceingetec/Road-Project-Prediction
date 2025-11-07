@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Fase, type PredictionResponse, type FunctionalUnitFormData } from "@/lib/api"
+import { api, type Fase, type FunctionalUnitFormData, type PredictionMetrics, type PredictionResponse } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
 import { PredictionComparisonChart } from "@/components/charts/prediction-comparison-chart"
@@ -11,11 +11,11 @@ import { FunctionalUnitCard } from "@/components/functional-unit-card"
 
 export default function PrediccionPage() {
   const [loading, setLoading] = useState(false)
-  const [prediction, setPrediction] = useState<any>(null)
+  const [prediction, setPrediction] = useState<PredictionResponse | null>(null)
   const [predictionItems, setPredictionItems] = useState<ItemCosto[]>([])
   const [fases, setFases] = useState<Fase[]>([])
   const [selectedItem, setSelectedItem] = useState<ItemCosto | null>(null)
-  const [modelMetrics, setModelMetrics] = useState<PredictionResponse['metrics']>({})
+  const [modelMetrics, setModelMetrics] = useState<PredictionMetrics>({})
   const [trainingModel, setTrainingModel] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUF, setEditingUF] = useState<{ index: number; data: FunctionalUnitFormData } | null>(null)
@@ -98,7 +98,6 @@ export default function PrediccionPage() {
 
     setPrediction(predictionData)
     setPredictionItems(predictionData.items || [])
-    setModelMetrics(predictionData.metrics) 
     setLoading(false)
   }
 
@@ -130,6 +129,7 @@ export default function PrediccionPage() {
       return
     }
     setSelectedItem(item)
+    setModelMetrics(item.metrics || {})
   }
 
   const handleTrainModel = async () => {
@@ -313,7 +313,7 @@ export default function PrediccionPage() {
 
               {/* Costo Total Estimado */}
               <div className="bg-white rounded-xl shadow-lg p-8 text-center mb-6">
-                <p className="text-sm font-medium text-primary uppercase tracking-wider">Costo Total Estimado</p>
+                <p className="text-sm font-medium text-primary uppercase tracking-wider">{prediction.proyecto_nombre} - Costo Total Estimado para {fases.find((f) => f.id == prediction.fase_id)?.nombre}</p> 
                 <p className="text-5xl font-extrabold text-primary mt-3">
                   {formatCurrency(prediction.costo_estimado)}
                 </p>
@@ -329,7 +329,7 @@ export default function PrediccionPage() {
                   </div>
                   <div className="h-8 w-px bg-gray-300"></div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 uppercase">Unidades Funcionales</p>
+                    <p className="text-xs text-gray-500 uppercase">UFs</p>
                     <p className="text-lg font-bold text-gray-700">{unidadesFuncionales.length}</p>
                   </div>
                 </div>
