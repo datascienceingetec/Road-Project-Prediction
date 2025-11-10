@@ -9,7 +9,6 @@ import {
   EnumsCatalog,
   PredictionRequest,
   PredictionResponse,
-  Scenario,
 } from './types'
 
 import {
@@ -219,47 +218,7 @@ export const api = {
   async predictCosto(data: PredictionRequest): Promise<PredictionResponse> {
     return this.getPrediction(data)
   },
-
-  // ---------- Scenarios ----------
-  async getScenarios(): Promise<Scenario[]> {
-    await delay(300)
-    // Soporte localStorage (solo navegador)
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('prediction_scenarios')
-      return stored ? JSON.parse(stored) : []
-    }
-    return []
-  },
-
-  async saveScenario(scenario: Omit<Scenario, 'id' | 'fecha_creacion'>): Promise<Scenario> {
-    await delay(300)
-    const newScenario: Scenario = {
-      ...scenario,
-      id: `scenario_${Date.now()}`,
-      fecha_creacion: new Date().toISOString(),
-    }
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('prediction_scenarios')
-      const scenarios: Scenario[] = stored ? JSON.parse(stored) : []
-      scenarios.push(newScenario)
-      localStorage.setItem('prediction_scenarios', JSON.stringify(scenarios))
-    }
-    return newScenario
-  },
-
-  async deleteScenario(scenarioId: string): Promise<boolean> {
-    await delay(300)
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('prediction_scenarios')
-      if (stored) {
-        const scenarios: Scenario[] = JSON.parse(stored)
-        const filtered = scenarios.filter((s) => s.id !== scenarioId)
-        localStorage.setItem('prediction_scenarios', JSON.stringify(filtered))
-      }
-    }
-    return true
-  },
-
+  
   // ---------- Charts ----------
   async getValorPresenteCausacion(_faseId?: number, _alcance?: string, _presentYear: number = 2025) {
     // Devuelve null si no quieres mocks aquí; o arma un mock simple

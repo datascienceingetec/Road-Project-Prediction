@@ -4,18 +4,18 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
-import { api, type Proyecto, type UnidadFuncional, type CostoItem, type FaseItemRequerido } from "@/lib/api"
+import { api, type Proyecto, type UnidadFuncional, type FaseItemRequerido } from "@/lib/api"
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
-import { GoogleMap } from "@/components/google-map"
+import { InteractiveProjectMap, GeometryUploadModal } from "@/components/geometry"
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
 import { EditCostosModal } from "@/components/edit-costos-modal"
+import { Upload } from "lucide-react"
 
 export default function ProjectDetailPage() {
   const params = useParams()
   const codigo = params.codigo as string
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
   const [unidades, setUnidades] = useState<UnidadFuncional[]>([])
-  const [costos, setCostos] = useState<CostoItem[]>([])
   const [faseItems, setFaseItems] = useState<FaseItemRequerido[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"unidades" | "costos">("unidades")
@@ -23,6 +23,8 @@ export default function ProjectDetailPage() {
   const [editingUnit, setEditingUnit] = useState<UnidadFuncional | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCostosModalOpen, setIsCostosModalOpen] = useState(false)
+  const [isGeometryModalOpen, setIsGeometryModalOpen] = useState(false)
+  const [mapRefreshKey, setMapRefreshKey] = useState(0)
 
   useEffect(() => {
     loadData()
@@ -40,7 +42,6 @@ export default function ProjectDetailPage() {
       if (proyectoData.fase_id) {
         const faseItemsConCostos = await api.getCostos(codigo)
         setFaseItems(faseItemsConCostos)
-        setCostos([])
       }
 
 
@@ -62,6 +63,11 @@ export default function ProjectDetailPage() {
   }
 
   const handleSaveUnit = () => {
+    loadData()
+  }
+
+  const handleGeometryUploadSuccess = () => {
+    setMapRefreshKey(prev => prev + 1)
     loadData()
   }
 
@@ -90,12 +96,8 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const mapMarkers = unidades.map((unidad, index) => ({
-    lat: proyecto.lat_inicio! + index * 0.01,
-    lng: proyecto.lng_inicio! + index * 0.01,
-    title: `UF-${String(unidad.numero).padStart(2, "0")}`,
-    color: (selectedUnitIndex === index ? "accent" : "primary") as "primary" | "accent",
-  }))
+  // Get selected unit ID for map highlighting
+  const selectedUnitId = selectedUnitIndex !== null ? unidades[selectedUnitIndex]?.id : null
 
   return (
     <main className="flex-grow p-6 lg:p-10 space-y-6">
@@ -122,9 +124,12 @@ export default function ProjectDetailPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap justify-start pt-2">
-            {/* <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f8f9fa] border border-[#dee2e6] text-[#111418] text-sm font-bold leading-normal hover:bg-gray-100 transition-colors">
-              <span className="truncate">Exportar Reporte</span>
-            </button> */}
+            <button 
+              onClick={() => setIsGeometryModalOpen(true)}
+              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f8f9fa] border border-[#dee2e6] text-[#111418] text-sm font-bold leading-normal hover:bg-gray-100 transition-colors gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="truncate">Cargar Geometría</span>
+            </button>
             <button 
                 onClick={() => {
                   setEditingUnit(null)
@@ -173,19 +178,21 @@ export default function ProjectDetailPage() {
       <section className="grid grid-cols-1 xl:grid-cols-5 gap-6 h-[720px]">
         {/* Panel Izquierdo: Mapa Interactivo */}
         <div className="xl:col-span-3 bg-white rounded-lg border border-[#dee2e6] overflow-hidden relative">
-          {proyecto.lat_inicio && proyecto.lng_inicio ? (
-            <GoogleMap
-              center={{ lat: proyecto.lat_inicio, lng: proyecto.lng_inicio }}
-              zoom={12}
-              markers={mapMarkers}
-              highlightedMarker={selectedUnitIndex ?? undefined}
-              className="w-full h-full"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-              <p className="text-gray-500">No hay coordenadas disponibles para este proyecto</p>
-            </div>
-          )}
+          <InteractiveProjectMap
+            key={mapRefreshKey}
+            projectCode={codigo}
+            selectedUnitId={selectedUnitId}
+            onUnitSelect={(id) => {
+              const index = unidades.findIndex(u => u.id === id)
+              setSelectedUnitIndex(index !== -1 ? index : null)
+            }}
+            center={proyecto.lat_inicio && proyecto.lng_inicio ? 
+              { lat: proyecto.lat_inicio, lng: proyecto.lng_inicio } : 
+              { lat: 4.5709, lng: -74.2973 }
+            }
+            zoom={12}
+            className="w-full h-full"
+          />
         </div>
 
         {/* Panel Derecho: Tabs de Datos */}
@@ -305,6 +312,13 @@ export default function ProjectDetailPage() {
         onSave={loadData}
         codigoProyecto={codigo}
         faseItems={faseItems}
+      />
+
+      <GeometryUploadModal
+        open={isGeometryModalOpen}
+        onOpenChange={setIsGeometryModalOpen}
+        projectCode={codigo}
+        onUploadSuccess={handleGeometryUploadSuccess}
       />
     </main>
   )

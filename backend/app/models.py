@@ -111,12 +111,13 @@ class UnidadFuncional(db.Model):
     alcance = Column(SQLEnum(AlcanceEnum), nullable=True)
     zona = Column(SQLEnum(ZonaEnum), nullable=True)
     tipo_terreno = Column(SQLEnum(TipoTerrenoEnum), nullable=True)
+    geometry_json = Column(Text, nullable=True)  # GeoJSON geometry as text
     
     # Relationships
     proyecto = relationship('Proyecto', back_populates='unidades_funcionales')
     
-    def to_dict(self):
-        return {
+    def to_dict(self, include_geometry=False):
+        data = {
             'id': self.id,
             'proyecto_id': self.proyecto_id,
             'numero': self.numero,
@@ -131,6 +132,13 @@ class UnidadFuncional(db.Model):
             'zona': self.zona.value if self.zona else None,
             'tipo_terreno': self.tipo_terreno.value if self.tipo_terreno else None
         }
+        if include_geometry and self.geometry_json:
+            import json
+            try:
+                data['geometry'] = json.loads(self.geometry_json)
+            except:
+                data['geometry'] = None
+        return data
 
 
 class ItemTipo(db.Model):

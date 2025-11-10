@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { api, type Proyecto, type Fase } from "@/lib/api"
-import { GoogleMap } from "@/components/google-map"
+import { InteractiveProjectMap } from "@/components/geometry"
 import { ProjectsTable } from "@/components/projects-table"
 
 // Default map center (Colombia)
@@ -15,7 +15,6 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Proyecto[]>([])
   const [fases, setFases] = useState<Fase[]>([])
   const [selectedProject, setSelectedProject] = useState<Proyecto | null>(null)
-  const [projectKml, setProjectKml] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   const loadProjects = async () => {
@@ -67,8 +66,6 @@ export default function HomePage() {
       setSelectedProject(null)
       return
     }
-
-    setProjectKml(`https://storage.googleapis.com/road_prediction/${project.codigo}.kml`)
     
     if (project.lat_inicio && project.lng_inicio) {
       setSelectedProject(project)
@@ -77,7 +74,7 @@ export default function HomePage() {
 
     const coords = await getCoords(project.ubicacion)
     if (coords) {
-      // await api.updateProyecto(project.codigo, { lat_inicio: coords.lat, lng_inicio: coords.lng })
+      await api.updateProyecto(project.codigo, { lat_inicio: coords.lat, lng_inicio: coords.lng })
       setSelectedProject({
         ...project,
           lat_inicio: coords.lat,
@@ -115,24 +112,12 @@ export default function HomePage() {
         </div>
 
         {/* 🗺️ Map */}
-        <div className="mb-8 h-96 rounded-lg overflow-hidden shadow-md">
-          <GoogleMap
+        <div className="mb-8 h-[500px] rounded-lg overflow-hidden shadow-md">
+          <InteractiveProjectMap
+            projectCode={selectedProject?.codigo}
             center={mapCenter}
             zoom={selectedProject ? 12 : DEFAULT_ZOOM}
             className="w-full h-full"
-            kml={projectKml}
-            markers={
-              selectedProject?.lat_inicio && selectedProject?.lng_inicio
-                ? [
-                    {
-                      lat: selectedProject.lat_inicio,
-                      lng: selectedProject.lng_inicio,
-                      title: selectedProject.nombre,
-                      color: "accent",
-                    },
-                  ]
-                : []
-            }
           />
         </div>
 

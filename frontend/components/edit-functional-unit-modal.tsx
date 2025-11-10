@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { type UnidadFuncional, type EnumOption, type FunctionalUnitFormData, api } from "@/lib/api"
+import { Upload, MapPin } from "lucide-react"
 
 interface EditFunctionalUnitModalProps {
   unidad: UnidadFuncional | FunctionalUnitFormData | null
@@ -25,6 +26,10 @@ export function EditFunctionalUnitModal({
   const [alcanceOptions, setAlcanceOptions] = useState<EnumOption[]>([])
   const [zonaOptions, setZonaOptions] = useState<EnumOption[]>([])
   const [tipoTerrenoOptions, setTipoTerrenoOptions] = useState<EnumOption[]>([])
+  const [hasGeometry, setHasGeometry] = useState(false)
+  const [uploadingGeometry, setUploadingGeometry] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [geometryChanged, setGeometryChanged] = useState(false)
 
   useEffect(() => {
     // Load enum options
@@ -41,9 +46,61 @@ export function EditFunctionalUnitModal({
     loadEnums()
   }, [])
 
+  const checkGeometry = async (ufId: number) => {
+    try {
+      await api.getUFGeometry(ufId)
+      setHasGeometry(true)
+    } catch {
+      setHasGeometry(false)
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setGeometryChanged(true)
+    }
+  }
+
+  const uploadGeometry = async (ufId: number) => {
+    if (!selectedFile) return
+
+    setUploadingGeometry(true)
+
+    try {
+      await api.uploadUFGeometry(ufId, selectedFile)
+      setHasGeometry(true)
+      setGeometryChanged(false)
+      setSelectedFile(null)
+      return true
+    } catch (error) {
+      alert(`Error: ${error instanceof Error ? error.message : 'No se pudo cargar la geometría'}`)
+      return false
+    } finally {
+      setUploadingGeometry(false)
+    }
+  }
+
+  const deleteGeometry = async (ufId: number) => {
+    if (!confirm('¿Estás seguro de eliminar la geometría de esta unidad funcional?')) return
+
+    try {
+      await api.deleteUFGeometry(ufId)
+      setHasGeometry(false)
+      alert('Geometría eliminada exitosamente')
+    } catch (error) {
+      alert(`Error: ${error instanceof Error ? error.message : 'No se pudo eliminar la geometría'}`)
+    }
+  }
+
   useEffect(() => {
     if (unidad) {
       setFormData(unidad)
+      // Check if this UF has geometry
+      if ('id' in unidad && unidad.id) {
+        checkGeometry(unidad.id)
+      }
     } else {
       const baseData = {
         numero: 1,
@@ -69,11 +126,21 @@ export function EditFunctionalUnitModal({
     try {
       // Si tiene proyectoId, es para guardar en BD
       if (proyectoId !== undefined) {
+        let ufId: number | undefined
+        
         if (unidad && 'id' in unidad) {
           await api.updateUnidadFuncional(unidad.id, formData as Partial<UnidadFuncional>)
+          ufId = unidad.id
         } else {
-          await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+          const newUf = await api.createUnidadFuncional(formData as Omit<UnidadFuncional, "id">)
+          ufId = newUf.id
         }
+        
+        // Upload geometry if file was selected
+        if (geometryChanged && selectedFile && ufId) {
+          await uploadGeometry(ufId)
+        }
+        
         onSave()
       } else {
         // Si no tiene proyectoId, solo retorna los datos (para predicción)
@@ -124,7 +191,54 @@ export function EditFunctionalUnitModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               />
+              {hasGeometry && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Esta UF tiene geometría cargada
+                </p>
+              )}
             </div>
+
+            {unidad && 'id' in unidad && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Geometría</label>
+                <input
+                  type="file"
+                  id="geometry-upload"
+                  accept=".kml,.geojson,.json,.shp,.zip"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={uploadingGeometry}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('geometry-upload')?.click()}
+                    disabled={uploadingGeometry}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {selectedFile ? selectedFile.name : (hasGeometry ? 'Cambiar' : 'Seleccionar')}
+                  </button>
+                  {hasGeometry && (
+                    <button
+                      type="button"
+                      onClick={() => deleteGeometry((unidad as any).id)}
+                      className="px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedFile ? (
+                    <span className="text-blue-600">Archivo seleccionado. Se cargará al guardar.</span>
+                  ) : (
+                    'Formatos: KML, GeoJSON, Shapefile (ZIP)'
+                  )}
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Alcance</label>

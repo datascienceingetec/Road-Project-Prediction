@@ -124,15 +124,3 @@ export interface PredictionMetrics {
   median_ae?: number
   max_error?: number
 }
-
-export interface Scenario {
-  id: string
-  nombre: string
-  proyecto_nombre: string
-  fase_id: number
-  ubicacion: string
-  costo_total: number
-  fecha_creacion: string
-  unidades_funcionales?: Omit<UnidadFuncional, "id" | "proyecto_id">[]
-  items?: any[]
-}

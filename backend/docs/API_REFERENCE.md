@@ -14,6 +14,9 @@
 | `POST`   | `/api/v1/proyectos`                               | Crea un nuevo proyecto (con `codigo` único) |
 | `PUT`    | `/api/v1/proyectos/<codigo>`                      | Actualiza un proyecto por código            |
 | `DELETE` | `/api/v1/proyectos/<proyecto_id>`                 | Elimina un proyecto por ID                  |
+| `GET`    | `/api/v1/proyectos/<codigo>/geometries`           | Lista todas las geometrías del proyecto (GeoJSON) |
+| `POST`   | `/api/v1/proyectos/<codigo>/geometries`           | Carga masiva de geometrías (KML, SHP, GeoJSON) |
+| `GET`    | `/api/v1/proyectos/<codigo>/geometries/export/<format>` | Exporta geometrías del proyecto en formato KML/SHP/GeoJSON |
 
 **Query Parameters para GET /proyectos/...:**
 - `include_relations` (opcional): Incluir relaciones (ej: `?include_relations=true`)
@@ -29,6 +32,10 @@
 | `POST`   | `/api/v1/unidades-funcionales`         | Crea una nueva UF                   |
 | `PUT`    | `/api/v1/unidades-funcionales/<id>`    | Actualiza una UF                    |
 | `DELETE` | `/api/v1/unidades-funcionales/<id>`    | Elimina una UF                      |
+| `GET`    | `/api/v1/unidades-funcionales/<id>/geometry`      | Obtiene la geometría de una UF (GeoJSON) |
+| `POST`   | `/api/v1/unidades-funcionales/<id>/geometry`      | Carga geometría a una UF (KML, SHP, GeoJSON) |
+| `PUT`    | `/api/v1/unidades-funcionales/<id>/geometry`      | Actualiza la geometría de una UF (GeoJSON) |
+| `DELETE` | `/api/v1/unidades-funcionales/<id>/geometry`      | Elimina la geometría de una UF           |
 
 ---
 

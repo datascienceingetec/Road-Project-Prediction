@@ -3,13 +3,11 @@ import {
   Proyecto,
   UnidadFuncional,
   ItemTipo,
-  CostoItem,
   FaseItemRequerido,
   EnumOption,
   EnumsCatalog,
   PredictionRequest,
   PredictionResponse,
-  Scenario,
 } from './types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
@@ -144,20 +142,6 @@ export const api = {
     return this.getPrediction(data)
   },
 
-  // ---------- Scenarios ----------
-  getScenarios(): Promise<Scenario[]> {
-    return fetchAPI('/scenarios')
-  },
-
-  saveScenario(scenario: Omit<Scenario, 'id' | 'fecha_creacion'>): Promise<Scenario> {
-    return fetchAPI('/scenarios', { method: 'POST', body: JSON.stringify(scenario) })
-  },
-
-  async deleteScenario(scenarioId: string): Promise<boolean> {
-    await fetchAPI(`/scenarios/${scenarioId}`, { method: 'DELETE' })
-    return true
-  },
-
   // ---------- Charts ----------
   async getValorPresenteCausacion(faseId?: number, alcance?: string, presentYear: number = 2025) {
     const params = new URLSearchParams()
@@ -186,5 +170,87 @@ export const api = {
   // ---------- Model Training ----------
   async trainModel() {
     return fetchAPI('/predict/train', { method: 'POST' })
+  },
+
+  // ---------- Geometry ----------
+  
+  // UF Geometry
+  async getUFGeometry(ufId: number) {
+    return fetchAPI(`/unidades-funcionales/${ufId}/geometry`)
+  },
+
+  async uploadUFGeometry(ufId: number, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await fetch(`${API_BASE_URL}/unidades-funcionales/${ufId}/geometry`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Error cargando geometría')
+    }
+    
+    return response.json()
+  },
+
+  async updateUFGeometry(ufId: number, geometry: any, recalculateLength = true) {
+    return fetchAPI(`/unidades-funcionales/${ufId}/geometry`, {
+      method: 'PUT',
+      body: JSON.stringify({ geometry, recalculate_length: recalculateLength }),
+    })
+  },
+
+  async deleteUFGeometry(ufId: number) {
+    return fetchAPI(`/unidades-funcionales/${ufId}/geometry`, { method: 'DELETE' })
+  },
+
+  // Project Geometries
+  async getProjectGeometries(codigo: string) {
+    return fetchAPI(`/proyectos/${codigo}/geometries`)
+  },
+
+  async uploadProjectGeometries(codigo: string, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await fetch(`${API_BASE_URL}/proyectos/${codigo}/geometries`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Error cargando geometrías')
+    }
+    
+    return response.json()
+  },
+
+  async exportProjectGeometries(codigo: string, format: 'kml' | 'shp' | 'geojson') {
+    const response = await fetch(`${API_BASE_URL}/proyectos/${codigo}/geometries/export/${format}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error('Error exportando geometrías')
+    }
+    
+    if (format === 'geojson') {
+      return response.json()
+    }
+    
+    // For KML and SHP, return blob for download
+    return response.blob()
   },
 }

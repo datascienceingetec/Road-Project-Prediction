@@ -1,5 +1,12 @@
-from flask import Blueprint, jsonify, request
+import json
+import os
+import tempfile
+import zipfile
+from flask import Blueprint, jsonify, request, send_file
+from werkzeug.utils import secure_filename
 from app.models import db, Proyecto, UnidadFuncional, CostoItem
+from app.services.geometry_processor import GeometryProcessor
+from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum
 
 proyectos_bp = Blueprint("proyectos_v1", __name__)
 
@@ -282,3 +289,276 @@ def delete_costo(codigo, costo_id):
     db.session.delete(costo)
     db.session.commit()
     return jsonify({'message': 'Costo eliminado'}), 200
+
+
+# ========== GEOMETRY ENDPOINTS ==========
+
+@proyectos_bp.route('/<codigo>/geometries', methods=['GET', 'POST'])
+def manage_project_geometries(codigo):
+    """
+    Manage all geometries for a project
+    
+    GET: Return GeoJSON FeatureCollection with all UF geometries
+    POST: Bulk upload geometries from file (KML/SHP/GeoJSON)
+    """
+    proyecto = Proyecto.query.filter_by(codigo=codigo).first()
+    if not proyecto:
+        return jsonify({'error': 'Proyecto no encontrado'}), 404
+    
+    if request.method == 'GET':
+        # Get all unidades funcionales with geometries
+        unidades = UnidadFuncional.query.filter_by(proyecto_id=proyecto.id).all()
+        
+        features = []
+        for uf in unidades:
+            if uf.geometry_json:
+                try:
+                    geometry = json.loads(uf.geometry_json)
+                    features.append({
+                        'type': 'Feature',
+                        'id': uf.id,
+                        'geometry': geometry,
+                        'properties': {
+                            'id': uf.id,
+                            'numero': uf.numero,
+                            'longitud_km': uf.longitud_km,
+                            'alcance': uf.alcance.value if uf.alcance else None,
+                            'zona': uf.zona.value if uf.zona else None,
+                            'tipo_terreno': uf.tipo_terreno.value if uf.tipo_terreno else None,
+                            'puentes_vehiculares_und': uf.puentes_vehiculares_und,
+                            'puentes_peatonales_und': uf.puentes_peatonales_und,
+                            'tuneles_und': uf.tuneles_und
+                        }
+                    })
+                except json.JSONDecodeError:
+                    continue
+        
+        geojson = {
+            'type': 'FeatureCollection',
+            'features': features
+        }
+        
+        return jsonify(geojson), 200
+    
+    elif request.method == 'POST':
+        # Bulk upload from file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No se proporcionó ningún archivo'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Nombre de archivo vacío'}), 400
+        
+        # Validate file
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        is_valid, error_msg = GeometryProcessor.validate_file(file.filename, file_size)
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
+        
+        # Save file temporarily
+        filename = secure_filename(file.filename)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
+            file.save(temp_file.name)
+            temp_path = temp_file.name
+        
+        try:
+            # Extract geometries
+            features = GeometryProcessor.extract_geometries(temp_path, filename)
+            
+            # Process each feature
+            created_count = 0
+            updated_count = 0
+            errors = []
+            
+            for idx, feature in enumerate(features):
+                try:
+                    geometry = feature['geometry']
+                    properties = feature.get('properties', {})
+                    
+                    # Try to extract UF number from properties
+                    numero = None
+                    for key in ['numero', 'Numero', 'NUMERO', 'uf', 'UF', 'unidad', 'Unidad']:
+                        if key in properties and properties[key] is not None:
+                            try:
+                                numero = int(properties[key])
+                                break
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    # If no numero found, use index + 1
+                    if numero is None:
+                        numero = idx + 1
+                    
+                    # Extract other properties
+                    alcance = None
+                    for key in ['alcance', 'Alcance', 'ALCANCE']:
+                        if key in properties and properties[key]:
+                            try:
+                                alcance = AlcanceEnum(properties[key])
+                            except ValueError:
+                                pass
+                            break
+                    
+                    tipo_terreno = None
+                    for key in ['tipo_terreno', 'Tipo_Terreno', 'TIPO_TERRENO', 'terreno', 'Terreno']:
+                        if key in properties and properties[key]:
+                            try:
+                                tipo_terreno = TipoTerrenoEnum(properties[key])
+                            except ValueError:
+                                pass
+                            break
+                    
+                    zona = None
+                    for key in ['zona', 'Zona', 'ZONA']:
+                        if key in properties and properties[key]:
+                            try:
+                                zona = ZonaEnum(properties[key])
+                            except ValueError:
+                                pass
+                            break
+                    
+                    # Calculate length from geometry
+                    geometry_json = json.dumps(geometry)
+                    longitud_km = GeometryProcessor.calculate_length_km(geometry_json)
+                    
+                    # Check if UF already exists
+                    uf = UnidadFuncional.query.filter_by(
+                        proyecto_id=proyecto.id,
+                        numero=numero
+                    ).first()
+                    
+                    if uf:
+                        # Update existing UF
+                        uf.geometry_json = geometry_json
+                        if longitud_km > 0:
+                            uf.longitud_km = longitud_km
+                        if alcance:
+                            uf.alcance = alcance
+                        if tipo_terreno:
+                            uf.tipo_terreno = tipo_terreno
+                        if zona:
+                            uf.zona = zona
+                        updated_count += 1
+                    else:
+                        # Create new UF
+                        uf = UnidadFuncional(
+                            proyecto_id=proyecto.id,
+                            numero=numero,
+                            longitud_km=longitud_km,
+                            geometry_json=geometry_json,
+                            alcance=alcance,
+                            tipo_terreno=tipo_terreno,
+                            zona=zona
+                        )
+                        db.session.add(uf)
+                        created_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"Feature {idx + 1}: {str(e)}")
+                    continue
+            
+            # Commit changes
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Geometrías cargadas exitosamente',
+                'created': created_count,
+                'updated': updated_count,
+                'total_features': len(features),
+                'errors': errors if errors else None
+            }), 200
+            
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Error procesando archivo: {str(e)}'}), 500
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+
+@proyectos_bp.route('/<codigo>/geometries/export/<format>', methods=['GET'])
+def export_geometries(codigo, format):
+    """
+    Export project geometries to KML, Shapefile, or GeoJSON
+    
+    Args:
+        codigo: Project code
+        format: Export format (kml, shp, geojson)
+    """
+    proyecto = Proyecto.query.filter_by(codigo=codigo).first()
+    if not proyecto:
+        return jsonify({'error': 'Proyecto no encontrado'}), 404
+    
+    # Get all unidades funcionales with geometries
+    unidades = UnidadFuncional.query.filter_by(proyecto_id=proyecto.id).all()
+    
+    features = []
+    for uf in unidades:
+        if uf.geometry_json:
+            try:
+                geometry = json.loads(uf.geometry_json)
+                features.append({
+                    'geometry': geometry,
+                    'properties': {
+                        'numero': uf.numero,
+                        'longitud_km': uf.longitud_km,
+                        'alcance': uf.alcance.value if uf.alcance else None,
+                        'zona': uf.zona.value if uf.zona else None,
+                        'tipo_terreno': uf.tipo_terreno.value if uf.tipo_terreno else None
+                    }
+                })
+            except json.JSONDecodeError:
+                continue
+    
+    if not features:
+        return jsonify({'error': 'No hay geometrías para exportar'}), 404
+    
+    try:
+        if format.lower() == 'geojson':
+            # Return GeoJSON directly
+            geojson = GeometryProcessor.create_geojson_feature_collection(features)
+            return jsonify(geojson), 200
+        
+        elif format.lower() == 'kml':
+            # Export to KML
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.kml') as temp_file:
+                output_path = GeometryProcessor.export_to_kml(features, temp_file.name)
+                return send_file(
+                    output_path,
+                    as_attachment=True,
+                    download_name=f'{codigo}.kml',
+                    mimetype='application/vnd.google-earth.kml+xml'
+                )
+        
+        elif format.lower() == 'shp':
+            # Export to Shapefile (ZIP)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                shp_path = GeometryProcessor.export_to_shapefile(features, temp_dir)
+                
+                # Create ZIP with all shapefile components
+                zip_path = os.path.join(temp_dir, f'{codigo}.zip')
+                with zipfile.ZipFile(zip_path, 'w') as zipf:
+                    for file in os.listdir(temp_dir):
+                        if file.startswith('export.'):
+                            file_path = os.path.join(temp_dir, file)
+                            zipf.write(file_path, arcname=file.replace('export', codigo))
+                
+                return send_file(
+                    zip_path,
+                    as_attachment=True,
+                    download_name=f'{codigo}.zip',
+                    mimetype='application/zip'
+                )
+        
+        else:
+            return jsonify({'error': f'Formato no soportado: {format}. Use: kml, shp, o geojson'}), 400
+    
+    except Exception as e:
+        return jsonify({'error': f'Error exportando geometrías: {str(e)}'}), 500
