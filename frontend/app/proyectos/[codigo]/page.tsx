@@ -66,6 +66,10 @@ export default function ProjectDetailPage() {
     loadData()
   }
 
+  const handleDeleteUnitGeometry = () => {
+    setMapRefreshKey(prev => prev + 1)
+  }
+
   const handleGeometryUploadSuccess = () => {
     setMapRefreshKey(prev => prev + 1)
     loadData()
@@ -303,6 +307,7 @@ export default function ProjectDetailPage() {
           setEditingUnit(null)
         }}
         onSave={handleSaveUnit}
+        onDeleteGeometry={handleDeleteUnitGeometry}
         proyectoId={proyecto.id}
       />
 

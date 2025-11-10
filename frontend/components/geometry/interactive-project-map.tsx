@@ -262,9 +262,9 @@ export function InteractiveProjectMap({
           <div class="p-2">
             <h3 class="font-bold text-sm mb-1">Unidad Funcional ${numero}</h3>
             <div class="text-xs space-y-1">
-              ${longitud ? `<p>📏 Longitud: ${longitud} km</p>` : ""}
-              ${alcance ? `<p>🔧 Alcance: ${alcance}</p>` : ""}
-              ${zona ? `<p>🌍 Zona: ${zona}</p>` : ""}
+              ${longitud ? `<p>Longitud: ${longitud} km</p>` : ""}
+              ${alcance ? `<p>Alcance: ${alcance}</p>` : ""}
+              ${zona ? `<p>Zona: ${zona}</p>` : ""}
             </div>
           </div>
         `

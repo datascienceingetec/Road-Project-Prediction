@@ -23,12 +23,25 @@ interface GeometryUploadModalProps {
 }
 
 interface UploadResult {
-  status: "success" | "error"
+  status: "success" | "error" | "partial_success"
   message: string
+  dry_run?: boolean
   created?: number
   updated?: number
+  skipped?: number
   total_features?: number
-  errors?: string[]
+  errors?: Array<{feature: number, error: string}>
+  warnings?: Array<{feature: number, warning: string}>
+  preview?: Array<{
+    numero: number
+    action: string
+    geom_type: string
+    longitud_km: number
+    area_km2?: number
+    alcance?: string
+    zona?: string
+    tipo_terreno?: string
+  }>
 }
 
 export function GeometryUploadModal({
@@ -42,6 +55,7 @@ export function GeometryUploadModal({
   const [uploadProgress, setUploadProgress] = useState(0)
   const [result, setResult] = useState<UploadResult | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const acceptedFormats = ".kml,.geojson,.json,.zip,.shp"
   const maxSizeMB = 50
@@ -98,15 +112,13 @@ export function GeometryUploadModal({
     }
   }
 
-  const handleUpload = async () => {
+  const handlePreview = async () => {
     if (!file) return
 
     setUploading(true)
     setUploadProgress(0)
     setResult(null)
-
-    const formData = new FormData()
-    formData.append("file", file)
+    setShowPreview(false)
 
     try {
       // Simulate progress
@@ -114,19 +126,43 @@ export function GeometryUploadModal({
         setUploadProgress((prev) => Math.min(prev + 10, 90))
       }, 200)
 
-      const data = await api.uploadProjectGeometries(projectCode, file)
+      const data = await api.uploadProjectGeometries(projectCode, file, true)
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
+      setResult(data)
+      setShowPreview(true)
+    } catch (error) {
       setResult({
-        status: "success",
-        message: data.message || "Geometrías cargadas exitosamente",
-        created: data.created,
-        updated: data.updated,
-        total_features: data.total_features,
-        errors: data.errors,
+        status: "error",
+        message: error instanceof Error ? error.message : "Error de conexión con el servidor",
       })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!file) return
+
+    setUploading(true)
+    setUploadProgress(0)
+    setResult(null)
+    setShowPreview(false)
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 90))
+      }, 200)
+
+      const data = await api.uploadProjectGeometries(projectCode, file, false)
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      setResult(data)
       
       // Call success callback after a short delay
       setTimeout(() => {
@@ -255,43 +291,97 @@ export function GeometryUploadModal({
 
           {/* Result */}
           {result && (
-            <Alert
-              variant={result.status === "success" ? "default" : "destructive"}
-            >
-              {result.status === "success" ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-              <AlertDescription>
-                <p className="font-medium">{result.message}</p>
-                {result.status === "success" && (
+            <div className="space-y-3">
+              <Alert
+                variant={result.status === "error" ? "destructive" : "default"}
+              >
+                {result.status === "error" ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                <AlertDescription>
+                  <p className="font-medium">{result.message}</p>
                   <div className="mt-2 text-sm space-y-1">
-                    {result.created !== undefined && (
-                      <p>✓ Creadas: {result.created} unidades funcionales</p>
-                    )}
-                    {result.updated !== undefined && (
-                      <p>✓ Actualizadas: {result.updated} unidades funcionales</p>
-                    )}
                     {result.total_features !== undefined && (
                       <p>📊 Total de geometrías: {result.total_features}</p>
                     )}
+                    {result.created !== undefined && result.created > 0 && (
+                      <p>✓ Creadas: {result.created} unidades funcionales</p>
+                    )}
+                    {result.updated !== undefined && result.updated > 0 && (
+                      <p>✓ Actualizadas: {result.updated} unidades funcionales</p>
+                    )}
+                    {result.skipped !== undefined && result.skipped > 0 && (
+                      <p>⚠️ Omitidas: {result.skipped} unidades funcionales</p>
+                    )}
                   </div>
-                )}
-                {result.errors && result.errors.length > 0 && (
-                  <div className="mt-2 text-sm">
-                    <p className="font-medium">Advertencias:</p>
-                    <ul className="list-disc list-inside">
-                      {result.errors.slice(0, 5).map((error, idx) => (
-                        <li key={idx} className="text-xs">
-                          {error}
-                        </li>
-                      ))}
-                    </ul>
+                  {result.errors && result.errors.length > 0 && (
+                    <div className="mt-2 text-sm">
+                      <p className="font-medium text-red-600">Errores:</p>
+                      <ul className="list-disc list-inside">
+                        {result.errors.slice(0, 5).map((error, idx) => (
+                          <li key={idx} className="text-xs">
+                            Feature {error.feature}: {error.error}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.warnings && result.warnings.length > 0 && (
+                    <div className="mt-2 text-sm">
+                      <p className="font-medium text-yellow-600">Advertencias:</p>
+                      <ul className="list-disc list-inside">
+                        {result.warnings.slice(0, 5).map((warning, idx) => (
+                          <li key={idx} className="text-xs">
+                            Feature {warning.feature}: {warning.warning}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              {/* Preview Table */}
+              {showPreview && result.preview && result.preview.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-2 font-medium text-sm">
+                    Previsualización de cambios
                   </div>
-                )}
-              </AlertDescription>
-            </Alert>
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-1 text-left">UF</th>
+                          <th className="px-2 py-1 text-left">Acción</th>
+                          <th className="px-2 py-1 text-left">Tipo</th>
+                          <th className="px-2 py-1 text-right">Longitud (km)</th>
+                          <th className="px-2 py-1 text-left">Alcance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.preview.map((item, idx) => (
+                          <tr key={idx} className="border-t">
+                            <td className="px-2 py-1">{item.numero}</td>
+                            <td className="px-2 py-1">
+                              <span className={`px-2 py-0.5 rounded text-xs ${
+                                item.action === 'create' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {item.action === 'create' ? 'Crear' : 'Actualizar'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1">{item.geom_type}</td>
+                            <td className="px-2 py-1 text-right">{item.longitud_km.toFixed(2)}</td>
+                            <td className="px-2 py-1">{item.alcance || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Info */}
@@ -308,11 +398,21 @@ export function GeometryUploadModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={uploading}>
-            {result?.status === "success" ? "Cerrar" : "Cancelar"}
+            {result?.status === "success" && !result.dry_run ? "Cerrar" : "Cancelar"}
           </Button>
-          {!result && (
-            <Button onClick={handleUpload} disabled={!file || uploading}>
-              {uploading ? "Cargando..." : "Cargar Geometría"}
+          {!result && file && (
+            <>
+              <Button variant="outline" onClick={handlePreview} disabled={uploading}>
+                {uploading ? "Analizando..." : "Previsualizar"}
+              </Button>
+              <Button onClick={handleUpload} disabled={uploading}>
+                {uploading ? "Cargando..." : "Aplicar Directamente"}
+              </Button>
+            </>
+          )}
+          {showPreview && result?.dry_run && (
+            <Button onClick={handleUpload} disabled={uploading}>
+              {uploading ? "Aplicando..." : "Aplicar Cambios"}
             </Button>
           )}
         </DialogFooter>

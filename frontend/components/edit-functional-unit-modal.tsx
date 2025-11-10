@@ -11,6 +11,7 @@ interface EditFunctionalUnitModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data?: any) => void
+  onDeleteGeometry?: () => void
   proyectoId?: number
 }
 
@@ -19,6 +20,7 @@ export function EditFunctionalUnitModal({
   isOpen,
   onClose,
   onSave,
+  onDeleteGeometry,
   proyectoId,
 }: EditFunctionalUnitModalProps) {
   const [formData, setFormData] = useState<Partial<UnidadFuncional>>({})
@@ -89,6 +91,7 @@ export function EditFunctionalUnitModal({
       await api.deleteUFGeometry(ufId)
       setHasGeometry(false)
       alert('Geometría eliminada exitosamente')
+      onDeleteGeometry?.()
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'No se pudo eliminar la geometría'}`)
     }
@@ -191,12 +194,6 @@ export function EditFunctionalUnitModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               />
-              {hasGeometry && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  Esta UF tiene geometría cargada
-                </p>
-              )}
             </div>
 
             {unidad && 'id' in unidad && (

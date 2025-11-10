@@ -215,11 +215,17 @@ export const api = {
     return fetchAPI(`/proyectos/${codigo}/geometries`)
   },
 
-  async uploadProjectGeometries(codigo: string, file: File) {
+  async uploadProjectGeometries(codigo: string, file: File, dryRun = false, autoCreate = true) {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await fetch(`${API_BASE_URL}/proyectos/${codigo}/geometries`, {
+    const params = new URLSearchParams()
+    if (dryRun) params.append('dry_run', 'true')
+    if (!autoCreate) params.append('auto_create', 'false')
+    
+    const url = `${API_BASE_URL}/proyectos/${codigo}/geometries${params.toString() ? '?' + params.toString() : ''}`
+    
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
       headers: {

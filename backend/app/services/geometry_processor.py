@@ -184,6 +184,39 @@ class GeometryProcessor:
             return features
     
     @staticmethod
+    def validate_geometry(geometry: Any) -> Tuple[bool, str]:
+        """
+        Validate geometry topology and structure
+        
+        Args:
+            geometry: Shapely geometry object
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if geometry is None or geometry.is_empty:
+            return False, "Geometría vacía"
+        
+        if not geometry.is_valid:
+            return False, f"Geometría inválida: {geometry.is_valid_reason if hasattr(geometry, 'is_valid_reason') else 'topología incorrecta'}"
+        
+        if not geometry.is_simple:
+            return False, "Geometría con auto-intersecciones"
+        
+        # Validar según tipo de geometría
+        geom_type = geometry.geom_type
+        
+        if geom_type in ['Polygon', 'MultiPolygon']:
+            if geometry.area <= 0:
+                return False, "Polígono con área cero o negativa"
+        
+        if geom_type in ['LineString', 'MultiLineString']:
+            if geometry.length <= 0:
+                return False, "Línea con longitud cero"
+        
+        return True, ""
+    
+    @staticmethod
     def calculate_length_km(geometry_json: str) -> float:
         """
         Calculate length of a LineString geometry in kilometers
@@ -212,6 +245,36 @@ class GeometryProcessor:
             
         except Exception as e:
             print(f"Error calculating length: {e}")
+            return 0.0
+    
+    @staticmethod
+    def calculate_area_km2(geometry_json: str) -> float:
+        """
+        Calculate area of a Polygon geometry in square kilometers
+        
+        Args:
+            geometry_json: GeoJSON geometry as string
+            
+        Returns:
+            Area in square kilometers
+        """
+        try:
+            geom_dict = json.loads(geometry_json) if isinstance(geometry_json, str) else geometry_json
+            geom = shape(geom_dict)
+            
+            # Create a projection to calculate area in square meters
+            wgs84 = pyproj.CRS('EPSG:4326')
+            utm = pyproj.CRS('EPSG:3857')  # Web Mercator
+            
+            project = pyproj.Transformer.from_crs(wgs84, utm, always_xy=True).transform
+            geom_projected = transform(project, geom)
+            
+            # Area in square meters, convert to km²
+            area_m2 = geom_projected.area
+            return round(area_m2 / 1_000_000, 2)
+            
+        except Exception as e:
+            print(f"Error calculating area: {e}")
             return 0.0
     
     @staticmethod

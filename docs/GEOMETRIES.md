@@ -2,29 +2,45 @@
 
 ## ¿Cómo funciona el sistema de geometría?
 
-- **Carga de geometría individual:**
-  - Endpoint: `POST /api/v1/unidades-funcionales/{id}/geometry`
-  - Permite subir un archivo KML, SHP (zip) o GeoJSON para una UF específica.
-  - La geometría se almacena en formato GeoJSON (WGS84) en la base de datos.
-  - Si ya existe geometría, se reemplaza.
+### Carga de geometría individual
+- **Endpoint:** `POST /api/v1/unidades-funcionales/{id}/geometry`
+- Permite subir un archivo KML, SHP (zip) o GeoJSON para una UF específica
+- La geometría se almacena en formato GeoJSON (WGS84) en la base de datos
+- Si ya existe geometría, se reemplaza
+- Validación topológica automática
 
-- **Carga masiva de geometrías por proyecto:**
-  - Endpoint: `POST /api/v1/proyectos/{codigo}/geometries`
-  - Permite subir un archivo con múltiples features (KML, SHP, GeoJSON).
-  - Cada feature se asigna a una UF (por el campo `numero` o secuencial).
-  - Se crean o actualizan UFs automáticamente según el archivo.
+### Carga masiva de geometrías por proyecto
+- **Endpoint:** `POST /api/v1/proyectos/{codigo}/geometries`
+- **Parámetros opcionales:**
+  - `?dry_run=true`: Previsualización sin modificar la base de datos
+  - `?auto_create=false`: Solo actualiza UFs existentes, no crea nuevas
+- Permite subir un archivo con múltiples features (KML, SHP, GeoJSON)
+- Cada feature se asigna a una UF (por el campo `numero` o secuencial)
+- Se crean o actualizan UFs automáticamente según configuración
+- **Validaciones incluidas:**
+  - Topología de geometrías (is_valid, is_simple)
+  - Área/longitud según tipo de geometría
+  - CRS correcto (WGS84)
+  - Verificación de UFs existentes
+- **Manejo robusto de errores:**
+  - Un error en un feature no aborta toda la carga
+  - Commits incrementales cada 10 features
+  - Respuesta detallada con errores y advertencias por feature
 
-- **Visualización:**
-  - El frontend consume `GET /api/v1/proyectos/{codigo}/geometries` para mostrar todas las geometrías en el mapa interactivo.
-  - Las geometrías se colorean dinámicamente según el tipo de alcance.
+### Visualización
+- El frontend consume `GET /api/v1/proyectos/{codigo}/geometries`
+- Muestra todas las geometrías en el mapa interactivo
+- Coloración dinámica según tipo de alcance
+- Soporte para LineString, Polygon y MultiPolygon
 
-- **Eliminación:**
-  - Endpoint: `DELETE /api/v1/unidades-funcionales/{id}/geometry`
-  - Elimina la geometría de la UF, pero no la UF en sí.
+### Eliminación
+- **Endpoint:** `DELETE /api/v1/unidades-funcionales/{id}/geometry`
+- Elimina la geometría de la UF, pero no la UF en sí
 
-- **Exportación:**
-  - Endpoint: `GET /api/v1/proyectos/{codigo}/geometries/export/<format>`
-  - Permite exportar todas las geometrías del proyecto en KML, SHP o GeoJSON.
+### Exportación
+- **Endpoint:** `GET /api/v1/proyectos/{codigo}/geometries/export/<format>`
+- Formatos: KML, SHP (ZIP), GeoJSON
+- Exporta todas las geometrías del proyecto
 
 ## Escalabilidad y mejoras recomendadas
 
@@ -40,16 +56,10 @@
 - **Descarga/exportación:**
   - Exportación masiva puede requerir optimización de memoria si hay miles de features.
 
-### Mejoras recomendadas
-- **Vista previa de geometría antes de guardar**
-- **Validación avanzada de topología y CRS**
-- **Soporte para multipolígonos y multilíneas**
-- **Historial de versiones de geometría**
-- **Integración con servicios de mapas externos (WMS, WMTS)**
-- **Indexación espacial (PostGIS, SpatiaLite)**
-- **Carga asíncrona de archivos muy grandes**
-- **Permitir propiedades personalizadas en features**
-
----
-
-**Última actualización:** Noviembre 2024
+### Mejoras implementadas ✅
+- ✅ **Vista previa de geometría antes de guardar** (dry-run mode)
+- ✅ **Validación avanzada de topología y CRS**
+- ✅ **Soporte para multipolígonos y multilíneas**
+- ✅ **Control de errores por feature** (no aborta toda la carga)
+- ✅ **Cálculo automático de área para polígonos**
+- ✅ **Validación semántica** (verificar UFs existentes)
