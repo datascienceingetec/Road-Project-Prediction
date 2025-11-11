@@ -5,3 +5,7 @@ class PhaseNotFoundError(Exception):
 
 class MissingItemsError(Exception):
     pass
+
+
+class BadRequest(Exception):
+    pass

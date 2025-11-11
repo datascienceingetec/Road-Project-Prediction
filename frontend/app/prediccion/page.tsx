@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Fase, type FunctionalUnitFormData, type PredictionMetrics, type PredictionResponse } from "@/lib/api"
+import { api, type Fase, type FunctionalUnitFormData, type MetricRow, type PredictionResponse, type UnidadFuncionalPrediction, type AvailableModel } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
 import { PredictionComparisonChart } from "@/components/charts/prediction-comparison-chart"
@@ -12,14 +12,18 @@ import { FunctionalUnitCard } from "@/components/functional-unit-card"
 export default function PrediccionPage() {
   const [loading, setLoading] = useState(false)
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null)
-  const [predictionItems, setPredictionItems] = useState<ItemCosto[]>([])
   const [fases, setFases] = useState<Fase[]>([])
   const [selectedItem, setSelectedItem] = useState<ItemCosto | null>(null)
-  const [modelMetrics, setModelMetrics] = useState<PredictionMetrics>({})
+  const [modelMetrics, setModelMetrics] = useState<MetricRow | MetricRow[]>([])
   const [trainingModel, setTrainingModel] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUF, setEditingUF] = useState<{ index: number; data: FunctionalUnitFormData } | null>(null)
   const [selectedUFIndex, setSelectedUFIndex] = useState<number | null>(null)
+  const [activeTab, setActiveTab] = useState(0)
+  const [showTrainModal, setShowTrainModal] = useState(false)
+  const [selectedTrainFaseId, setSelectedTrainFaseId] = useState<number | null>(null)
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
+  const [loadingModels, setLoadingModels] = useState(false)
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -31,6 +35,7 @@ export default function PrediccionPage() {
 
   useEffect(() => {
     loadFases()
+    loadAvailableModels()
   }, [])
 
   const loadFases = async () => {
@@ -41,8 +46,28 @@ export default function PrediccionPage() {
     }
   }
 
+  const loadAvailableModels = async () => {
+    setLoadingModels(true)
+    try {
+      const response = await api.getAvailableModels()
+      setAvailableModels(response.models)
+      
+      // Set default train fase to first available model
+      const firstAvailable = response.models.find((m: AvailableModel) => m.available)
+      if (firstAvailable) {
+        setSelectedTrainFaseId(firstAvailable.fase)
+      }
+    } catch (error) {
+      console.error('Error loading available models:', error)
+    } finally {
+      setLoadingModels(false)
+    }
+  }
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    // Convert fase_id to number
+    const processedValue = field === 'fase_id' ? Number(value) : value
+    setFormData((prev) => ({ ...prev, [field]: processedValue }))
   }
 
   const handleAddUnidadFuncional = () => {
@@ -87,20 +112,34 @@ export default function PrediccionPage() {
 
 
   const handlePredict = async () => {
+    // Check if model is available for selected phase
+    const selectedPhaseModel = availableModels.find(m => m.fase_id === formData.fase_id)
+    if (!selectedPhaseModel || !selectedPhaseModel.available) {
+      const faseName = fases.find(f => f.id === formData.fase_id)?.nombre || 'seleccionada'
+      alert(`No hay modelo entrenado disponible para ${faseName}. Por favor, entrena un modelo primero usando el botón "Reentrenar Modelo".`)
+      return
+    }
+
     setLoading(true)
     setSelectedItem(null)
-    setModelMetrics({})
+    setModelMetrics([])
 
-    const predictionData = await api.predictCosto({
-      proyecto_nombre: formData.nombre,
-      fase_id: formData.fase_id,
-      ubicacion: formData.ubicacion,
-      unidades_funcionales: unidadesFuncionales,
-    })
+    try {
+      const predictionData = await api.predictCosto({
+        proyecto_nombre: formData.nombre,
+        fase_id: formData.fase_id,
+        ubicacion: formData.ubicacion,
+        unidades_funcionales: unidadesFuncionales,
+      })
 
-    setPrediction(predictionData)
-    setPredictionItems(predictionData.items || [])
-    setLoading(false)
+      setPrediction(predictionData)
+      setActiveTab(0)
+    } catch (error: any) {
+      console.error('Error in prediction:', error)
+      alert(error.message || 'Error al realizar la predicción')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const isFormValid = () => {
@@ -120,9 +159,9 @@ export default function PrediccionPage() {
     })
     setUnidadesFuncionales([])
     setPrediction(null)
-    setPredictionItems([])
     setSelectedItem(null)
     setSelectedUFIndex(null)
+    setActiveTab(0)
   }
 
   const handleItemClick = (item: ItemCosto) => {
@@ -131,14 +170,23 @@ export default function PrediccionPage() {
       return
     }
     setSelectedItem(item)
-    setModelMetrics(item.metrics || {})
+    setModelMetrics(item.metrics || [])
   }
 
   const handleTrainModel = async () => {
+    if (!selectedTrainFaseId) {
+      alert('Por favor selecciona una fase para entrenar')
+      return
+    }
+    
     setTrainingModel(true)
     try {
-      const result = await api.trainModel()
-      alert(result.message || 'Modelo entrenado exitosamente')
+      const result = await api.trainModel(selectedTrainFaseId)
+      const selectedModel = availableModels.find(m => m.fase_id === selectedTrainFaseId)
+      alert(`Modelo de ${selectedModel?.fase_nombre || 'la fase seleccionada'} entrenado exitosamente`)
+      setShowTrainModal(false)
+      // Reload available models
+      await loadAvailableModels()
     } catch (error) {
       console.error('Error al entrenar modelo:', error)
       alert('Error al entrenar el modelo')
@@ -159,23 +207,18 @@ export default function PrediccionPage() {
           <h1 className="text-[#071d49] text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
             Predicción de Costos
           </h1>
-          <button
-            onClick={handleTrainModel}
-            disabled={trainingModel}
-            className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {trainingModel ? (
-              <>
-                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                Entrenando...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-sm">model_training</span>
-                Reentrenar Modelo
-              </>
-            )}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setShowTrainModal(true)
+              }}
+              disabled={trainingModel}
+              className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-sm">model_training</span>
+              Entrenar Modelo
+            </button>
+          </div>
         </div>
 
         {/* Layout Principal */}
@@ -213,6 +256,34 @@ export default function PrediccionPage() {
                     </option>
                   ))}
                 </select>
+                
+                {/* Indicador de modelo disponible */}
+                {formData.fase_id > 0 && (
+                  <div className="mt-2">
+                    {loadingModels ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-gray-400 border-r-transparent"></div>
+                        <span>Verificando modelo...</span>
+                      </div>
+                    ) : (() => {
+                      const selectedPhaseModel = availableModels.find(m => m.fase_id === formData.fase_id)
+                      const isAvailable = selectedPhaseModel?.available
+                      
+                      return (
+                        <div className={`flex items-center gap-2 text-sm ${isAvailable ? 'text-green-700' : 'text-yellow-700'}`}>
+                          <span className="material-symbols-outlined text-base">
+                            {isAvailable ? 'check_circle' : 'warning'}
+                          </span>
+                          <span>
+                            {isAvailable 
+                              ? 'Modelo disponible para predicción' 
+                              : 'No hay modelo entrenado. Entrena uno primero.'}
+                          </span>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -317,71 +388,227 @@ export default function PrediccionPage() {
               <div className="bg-white rounded-xl shadow-lg p-8 text-center mb-6">
                 <p className="text-sm font-medium text-primary uppercase tracking-wider">{prediction.proyecto_nombre} - Costo Total Estimado para {fases.find((f) => f.id == prediction.fase_id)?.nombre}</p> 
                 <p className="text-5xl font-extrabold text-primary mt-3">
-                  {formatCurrency(prediction.costo_estimado)}
+                  {formatCurrency(prediction.costo_total)}
                 </p>
                 <div className="flex items-center justify-center gap-6 mt-4">
                   <div className="text-center">
                     <p className="text-xs text-gray-500 uppercase">Costo por km</p>
-                    <p className="text-lg font-bold text-gray-700">{formatCurrency(prediction.costo_por_km)}</p>
+                    <p className="text-lg font-bold text-gray-700">{formatCurrency(prediction.costo_total_por_km)}</p>
                   </div>
                   <div className="h-8 w-px bg-gray-300"></div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 uppercase">Confianza</p>
-                    <p className="text-lg font-bold text-gray-700">{(prediction.confianza * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-gray-500 uppercase">Longitud Total</p>
+                    <p className="text-lg font-bold text-gray-700">{prediction.longitud_total_km.toFixed(2)} km</p>
                   </div>
                   <div className="h-8 w-px bg-gray-300"></div>
                   <div className="text-center">
                     <p className="text-xs text-gray-500 uppercase">UFs</p>
-                    <p className="text-lg font-bold text-gray-700">{unidadesFuncionales.length}</p>
+                    <p className="text-lg font-bold text-gray-700">{prediction.num_unidades_funcionales}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Split Layout: Tabla y Comparación */}
-              <div
-                className={`grid gap-6 transition-all duration-300 ${
-                  selectedItem ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1'
-                }`}
-              >
-                {/* Tabla de Items */}
-                <div className={`transition-all duration-300 ${selectedItem ? 'md:col-span-2' : 'col-span-1'}`}>
-                  <PredictionResultsTable 
-                    items={predictionItems} 
-                    loading={loading}
-                    onItemClick={handleItemClick}
-                    selectedItem={selectedItem}
-                  />
+              {/* Tabs por Unidad Funcional */}
+              <div className="bg-white rounded-xl border border-[#dee2e6] overflow-hidden">
+                <div className="border-b border-[#dee2e6]">
+                  <div className="flex overflow-x-auto">
+                    {prediction.resultados.map((resultado, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setActiveTab(index)
+                          setSelectedItem(null)
+                        }}
+                        className={`px-6 py-4 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                          activeTab === index
+                            ? 'border-primary text-primary bg-primary/5'
+                            : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm">route</span>
+                          <span>UF {resultado.unidad_funcional}</span>
+                          <span className="text-xs text-gray-500">({resultado.longitud_km.toFixed(1)} km)</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Panel de Comparación */}
-                {selectedItem && (
-                  <div className="md:col-span-3 space-y-6 animate-in slide-in-from-right duration-300">
-                    <div className="bg-white rounded-xl border border-[#dee2e6] p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-[#071d49]">Análisis de Item</h3>
-                        <button
-                          onClick={() => setSelectedItem(null)}
-                          className="text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                          <span className="material-symbols-outlined">close</span>
-                        </button>
+                {/* Contenido del Tab Activo */}
+                {prediction.resultados[activeTab] && (
+                  <div className="p-6">
+                    {/* Info de la UF */}
+                    <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-4 mb-6">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-600 uppercase">Unidad Funcional</p>
+                          <p className="text-lg font-bold text-gray-900">UF {prediction.resultados[activeTab].unidad_funcional}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 uppercase">Alcance</p>
+                          <p className="text-lg font-bold text-gray-900">{prediction.resultados[activeTab].alcance}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 uppercase">Costo Estimado</p>
+                          <p className="text-lg font-bold text-primary">{formatCurrency(prediction.resultados[activeTab].costo_estimado)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 uppercase">Costo por km</p>
+                          <p className="text-lg font-bold text-gray-900">{formatCurrency(prediction.resultados[activeTab].costo_por_km)}</p>
+                        </div>
                       </div>
-                      <PredictionComparisonChart
-                        itemNombre={selectedItem.item}
-                        itemTipoId={selectedItem.item_tipo_id}
-                        faseId={formData.fase_id}
-                        predictedValue={selectedItem.causacion_estimada}
-                        predictedLength={getTotalLength()}
-                      />
                     </div>
-                    
-                    <ModelMetrics metrics={modelMetrics} />
+
+                    {/* Split Layout: Tabla y Comparación */}
+                    <div
+                      className={`grid gap-6 transition-all duration-300 ${
+                        selectedItem ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1'
+                      }`}
+                    >
+                      {/* Tabla de Items */}
+                      <div className={`transition-all duration-300 ${selectedItem ? 'md:col-span-2' : 'col-span-1'}`}>
+                        <PredictionResultsTable 
+                          items={prediction.resultados[activeTab].items} 
+                          loading={loading}
+                          onItemClick={handleItemClick}
+                          selectedItem={selectedItem}
+                        />
+                      </div>
+
+                      {/* Panel de Comparación */}
+                      {selectedItem && selectedItem.item_tipo_id !== null && (
+                        <div className="md:col-span-3 space-y-6 animate-in slide-in-from-right duration-300">
+                          <div className="bg-white rounded-xl border border-[#dee2e6] p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-bold text-[#071d49]">Análisis de Item</h3>
+                              <button
+                                onClick={() => setSelectedItem(null)}
+                                className="text-gray-500 hover:text-gray-700 transition-colors"
+                              >
+                                <span className="material-symbols-outlined">close</span>
+                              </button>
+                            </div>
+                            <PredictionComparisonChart
+                              itemNombre={selectedItem.item}
+                              itemTipoId={selectedItem.item_tipo_id}
+                              faseId={formData.fase_id}
+                              predictedValue={selectedItem.causacion_estimada}
+                              predictedLength={prediction.resultados[activeTab].longitud_km}
+                            />
+                          </div>
+                          
+                          <ModelMetrics metrics={modelMetrics} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Modal de Entrenamiento */}
+        {showTrainModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-primary text-3xl">model_training</span>
+                <h2 className="text-xl font-bold text-[#071d49]">Entrenar Modelo</h2>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                Selecciona la fase del modelo que deseas entrenar. Este proceso puede tomar varios minutos.
+              </p>
+
+              <div className="space-y-3 mb-6">
+                {loadingModels ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent"></div>
+                    <span className="ml-3 text-gray-600">Cargando modelos...</span>
+                  </div>
+                ) : availableModels.length === 0 ? (
+                  <div className="text-center py-8 text-gray-600">
+                    <p>No hay modelos disponibles</p>
+                  </div>
+                ) : (
+                  availableModels.map((model) => {
+                    const isAvailable = model.available
+                    
+                    return (
+                      <label 
+                        key={model.fase}
+                        className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-colors ${
+                          isAvailable 
+                            ? 'cursor-pointer hover:bg-gray-50' 
+                            : 'opacity-50 cursor-not-allowed bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="fase"
+                          value={model.fase_id}
+                          checked={selectedTrainFaseId === model.fase_id}
+                          onChange={(e) => setSelectedTrainFaseId(Number(e.target.value))}
+                          className="w-5 h-5 text-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900">Fase {model.fase}</p>
+                            {isAvailable && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                Disponible
+                              </span>
+                            )}
+                            {!isAvailable && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                No entrenado
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{model.fase_nombre}</p>
+                          {model.metadata?.training_date && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Última actualización: {new Date(model.metadata.training_date).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTrainModal(false)}
+                  disabled={trainingModel}
+                  className="flex-1 px-4 py-3 rounded-lg font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleTrainModel}
+                  disabled={trainingModel}
+                  className="flex-1 px-4 py-3 rounded-lg font-medium text-white bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {trainingModel ? (
+                    <>
+                      <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                      Entrenando...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">play_arrow</span>
+                      Entrenar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

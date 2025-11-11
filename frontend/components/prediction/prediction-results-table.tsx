@@ -1,14 +1,15 @@
 "use client"
 
 import { formatCurrency } from "@/lib/utils"
-import { PredictionMetrics } from "@/lib/api/types"
+import { MetricRow } from "@/lib/api/types"
 
 export interface ItemCosto {
   item: string
-  item_tipo_id: number
+  item_tipo_id: number | null
   causacion_estimada: number
-  metrics?: PredictionMetrics
+  metrics?: MetricRow | MetricRow[]
   is_parent?: boolean
+  predicted?: boolean
 }
 
 interface PredictionResultsTableProps {
@@ -75,7 +76,8 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
               const percentage = totalCausacion > 0 ? (item.causacion_estimada / totalCausacion) * 100 : 0
               const isSelected = selectedItem?.item === item.item
               const isParent = item.is_parent || false
-              const isClickable = !isParent
+              const isPredicted = item.predicted !== false  // true or undefined = predicted
+              const isClickable = !isParent  // All non-parent items are clickable
               
               return (
                 <tr
@@ -83,9 +85,11 @@ export function PredictionResultsTable({ items, loading = false, onItemClick, se
                   className={`transition-colors ${
                     isParent
                       ? 'bg-blue-50 cursor-default'
-                      : isSelected 
-                        ? 'bg-primary/10 hover:bg-primary/15 cursor-pointer' 
-                        : 'hover:bg-gray-50 cursor-pointer'
+                      : isClickable
+                        ? isSelected 
+                          ? 'bg-primary/10 hover:bg-primary/15 cursor-pointer' 
+                          : 'hover:bg-gray-50 cursor-pointer'
+                        : 'cursor-default'
                   }`}
                   onClick={() => isClickable && onItemClick?.(item)}
                 >

@@ -101,26 +101,86 @@ export interface PredictionRequest {
   unidades_funcionales?: Omit<UnidadFuncional, "id" | "proyecto_id">[]
 }
 
+export interface PredictionItemResult {
+  item: string
+  item_tipo_id: number | null
+  causacion_estimada: number
+  metrics?: MetricRow | MetricRow[]
+  predicted?: boolean  // Indica si se pudo predecir o es 0 por defecto
+}
+
+export interface UnidadFuncionalPrediction {
+  unidad_funcional: number
+  longitud_km: number
+  alcance: string
+  costo_estimado: number
+  costo_por_km: number
+  confianza: number
+  items: PredictionItemResult[]
+}
+
 export interface PredictionResponse {
   proyecto_nombre: string
   fase_id: number
   ubicacion: string
-  costo_estimado: number
-  costo_por_km: number
-  confianza: number
-  items?: Array<{
-    item: string
-    item_tipo_id: number
-    causacion_estimada: number
-    metrics?: PredictionMetrics
-  }>
+  costo_total: number
+  costo_total_por_km: number
+  longitud_total_km: number
+  num_unidades_funcionales: number
+  resultados: UnidadFuncionalPrediction[]
 }
 
-export interface PredictionMetrics {
+export interface MetricRow {
+  alcance: string
+  model: string
   r2?: number
   mae?: number
   rmse?: number
   mape?: number
-  median_ae?: number
-  max_error?: number
+  n_samples?: number
+}
+
+// Training endpoint types
+export interface TrainingRequest {
+  fase: 'II' | 'III'
+}
+
+export interface TrainingSummaryItem {
+  Target: string
+  Alcance: string
+  Model: string
+  'R²': number
+  MAE: number
+  RMSE: number
+  'MAPE (%)': number
+  n_samples: number
+  log_transform: string
+}
+
+export interface TrainingMetadata {
+  fase: string
+  n_samples: number
+  training_date: string
+}
+
+export interface TrainingResponse {
+  success: boolean
+  fase: string
+  models_path: string
+  summary?: TrainingSummaryItem[]
+  metadata?: TrainingMetadata
+  error?: string
+}
+
+// Available models types
+export interface AvailableModel {
+  fase: 'I' | 'II' | 'III'
+  fase_id: number
+  fase_nombre: string
+  available: boolean
+  metadata?: TrainingMetadata | null
+}
+
+export interface AvailableModelsResponse {
+  models: AvailableModel[]
 }

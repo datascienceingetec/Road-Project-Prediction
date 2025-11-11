@@ -168,8 +168,15 @@ export const api = {
   },
 
   // ---------- Model Training ----------
-  async trainModel() {
-    return fetchAPI('/predict/train', { method: 'POST' })
+  async trainModel(fase_id: number) {
+    return fetchAPI('/predict/train', { 
+      method: 'POST',
+      body: JSON.stringify({ fase_id })
+    })
+  },
+
+  async getAvailableModels() {
+    return fetchAPI('/predict/models/available')
   },
 
   // ---------- Geometry ----------
