@@ -12,9 +12,8 @@ class PresentValue:
         try:
             # TODO: por compatibilidad con la versión anterior
             return current_app.config["OLD_DATABASE"]
-            # return current_app.config["DATABASE"]
         except RuntimeError:
-            return Config.DATABASE
+            return Config.OLD_DATABASE
 
     def fetch_incremento_from_database(self) -> pd.Series:
         db_path = self._get_db_path()

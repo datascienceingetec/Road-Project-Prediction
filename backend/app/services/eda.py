@@ -17,9 +17,8 @@ class EDA:
         try:
             # TODO: por compatibilidad con la versión anterior
             return current_app.config["OLD_DATABASE"]
-            # return current_app.config["DATABASE"]
         except RuntimeError:
-            return Config.DATABASE
+            return Config.OLD_DATABASE
     
     def get_head(self, df: pd.DataFrame) -> pd.DataFrame:
         df_head = df.iloc[ 0:15 , 0:2 ]
