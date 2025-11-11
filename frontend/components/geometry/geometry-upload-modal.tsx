@@ -356,8 +356,6 @@ export function GeometryUploadModal({
                           <th className="px-2 py-1 text-left">UF</th>
                           <th className="px-2 py-1 text-left">Acción</th>
                           <th className="px-2 py-1 text-left">Tipo</th>
-                          <th className="px-2 py-1 text-right">Longitud (km)</th>
-                          <th className="px-2 py-1 text-left">Alcance</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -372,8 +370,6 @@ export function GeometryUploadModal({
                               </span>
                             </td>
                             <td className="px-2 py-1">{item.geom_type}</td>
-                            <td className="px-2 py-1 text-right">{item.longitud_km.toFixed(2)}</td>
-                            <td className="px-2 py-1">{item.alcance || '-'}</td>
                           </tr>
                         ))}
                       </tbody>

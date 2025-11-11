@@ -80,28 +80,28 @@ class GeometryAssigner:
 
         for idx, f in enumerate(features, start=1):
             try:
-                props = f.get("properties", {})
+                props = f.get("properties", {}) or {}
                 numero = None
 
-                # --- Intentar obtener el número desde propiedades ---
-                for key in ["numero", "Numero", "NUMERO", "uf", "UF", "unidad", "Unidad"]:
-                    if key in props:
-                        try:
-                            numero = int(props[key])
-                            break
-                        except (ValueError, TypeError):
-                            continue
+                # --- Buscar el número directamente desde el nombre ---
+                name = (
+                    f.get("name")
+                    or props.get("name")
+                    or props.get("Name")   # GeoPandas usualmente lo capitaliza
+                    or props.get("NOMBRE")
+                )
 
-                # --- Si no hay propiedades, intentar desde el nombre del Placemark ---
-                if numero is None:
-                    name = f.get("name") or props.get("name")
-                    if name:
-                        match = re.search(r"UF[-\s]*(\d+)", name)
-                        if match:
-                            numero = int(match.group(1))
+                if name:
+                    # Soporta "UF 1", "UF-01", "UF_03", "Unidad Funcional 4", etc.
+                    match = re.search(r"(?:UF|Unidad\s*Funcional)[^\d]*(\d+)", name, flags=re.IGNORECASE)
+                    if match:
+                        numero = int(match.group(1))
 
                 if numero is None:
-                    skipped.append({"feature": idx, "reason": "No se encontró número de UF"})
+                    skipped.append({
+                        "feature": idx,
+                        "reason": f"No se encontró número de UF (name={name})"
+                    })
                     continue
 
                 # Buscar UF existente en la base de datos
