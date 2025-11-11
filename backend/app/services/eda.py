@@ -352,7 +352,7 @@ class EDA:
         
         Args:
             fase: The project phase ('I', 'II', or 'III')
-            database_path: Path to the database (defaults to Config.DATABASE)
+            database_path: Path to the database (defaults to Config.OLD_DATABASE)
         
         Returns:
             DataFrame with project data for the specified fase
