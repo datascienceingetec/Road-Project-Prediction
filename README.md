@@ -74,7 +74,6 @@ Road-Project-Prediction/
 ```bash
 git clone https://github.com/arielforero/Road-Project-Prediction.git
 cd Road-Project-Prediction
-git switch dev
 ```
 
 ### 2️⃣ Configurar el backend
