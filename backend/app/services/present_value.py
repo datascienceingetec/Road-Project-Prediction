@@ -10,7 +10,9 @@ class PresentValue:
     
     def _get_db_path(self):
         try:
-            return current_app.config["DATABASE"]
+            # TODO: por compatibilidad con la versión anterior
+            return current_app.config["OLD_DATABASE"]
+            # return current_app.config["DATABASE"]
         except RuntimeError:
             return Config.DATABASE
 

@@ -108,15 +108,19 @@ pip install -r requirements.txt
 python manage_migrations.py upgrade
 ```
 
-Esto crea la base de datos en `instance/database.db`.
+> Esto crea la base de datos en `instance/database.db`.
+
+#### Compatibilidad con la versión anterior
+
+Renombrar antigua base de datos a `old_database.db` y mover a la carpeta `instance`.
+
+> Esto para que servicios como EDA y PresentValue funcionen sin modificaciones.
 
 #### Poblar datos desde una base anterior
 
 ```bash
 # desde /backend
-python seed_from_old_schema.py <path_to_old_database>
-# Ejemplo:
-# mover bd antigua a la carpeta instance y renombrar a old_database.db
+#python seed_from_old_schema.py <path_to_old_database>
 python seed_from_old_schema.py instance/old_database.db
 ```
 
@@ -126,7 +130,7 @@ python seed_from_old_schema.py instance/old_database.db
 cp .env.example .env
 ```
 
-Revisar y completar las variables según sea necesario.
+> Revisar y completar las variables según sea necesario.
 
 #### Ejecutar backend
 

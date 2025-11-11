@@ -9,6 +9,7 @@ LOGS_DIR = os.path.join(PROJECT_ROOT, "logs")
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
     DATABASE = os.path.join(INSTANCE_DIR, "database.db")
+    OLD_DATABASE = os.path.join(INSTANCE_DIR, "old_database.db")
     
     # SQLAlchemy configuration
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(INSTANCE_DIR, 'database.db')}"
