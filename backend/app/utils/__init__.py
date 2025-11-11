@@ -8,7 +8,7 @@ from .item_helpers import (
     get_parent_items
 )
 
-import ml_utils
+from . import ml_utils
 
 __all__ = [
     'parse_item_order',

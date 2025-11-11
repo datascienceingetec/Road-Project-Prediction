@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from utils.ml_utils import remove_outliers, calculate_metrics
+from app.utils.ml_utils import remove_outliers, calculate_metrics
 
 
 def prepare_geotecnia_data(df_vp: pd.DataFrame) -> pd.DataFrame:

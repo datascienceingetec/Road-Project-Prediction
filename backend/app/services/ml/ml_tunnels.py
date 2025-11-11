@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from utils.ml_utils import remove_outliers, calculate_metrics, get_bridges_structures_tunnels
+from app.utils.ml_utils import remove_outliers, calculate_metrics, get_bridges_structures_tunnels
 
 def generate_synthetic_data(df_real, predictor1, predictor2, target, n_synthetic=20):
     X_real = df_real[[predictor1, predictor2]].values

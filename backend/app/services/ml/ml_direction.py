@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVR
 from sklearn.model_selection import cross_val_predict
 
-from utils.ml_utils import remove_outliers, calculate_metrics
+from app.utils.ml_utils import remove_outliers, calculate_metrics
 
 def train_direction_model(df: pd.DataFrame, predictor_name: list[str], target_name: str, 
                 hue_name: str = None) -> tuple[pd.DataFrame, pd.Series, pd.Series, TransformedTargetRegressor, dict]:

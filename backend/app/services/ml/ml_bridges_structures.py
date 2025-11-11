@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from utils.ml_utils import remove_outliers, calculate_metrics, get_bridges_structures_tunnels
+from app.utils.ml_utils import remove_outliers, calculate_metrics, get_bridges_structures_tunnels
 
 def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predictors: list[str],
                                     exclude_codes: list[str] = None, use_log_transform: bool = False) -> dict:

@@ -6,7 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import LeaveOneOut, GridSearchCV
 import warnings
 
-from utils.ml_utils import remove_outliers, calculate_metrics
+from app.utils.ml_utils import remove_outliers, calculate_metrics
 
 def train_cantidades_model(df_vp: pd.DataFrame, predictors: list[str], target: str, log_transform: str = 'none'):
     
