@@ -42,6 +42,7 @@ instance/
 
 # Environment variables
 .env
+!.env.example
 .env.local
 
 # IDE

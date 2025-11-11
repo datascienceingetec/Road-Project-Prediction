@@ -6,7 +6,11 @@ Interfaz web moderna para la gestión y predicción de costos de proyectos viale
 
 ```bash
 # Instalar dependencias
+npm install -g pnpm # si no lo tienes instalado
 pnpm install
+
+# Crear archivo de entorno
+cp .env.example .env
 
 # Ejecutar en modo desarrollo
 pnpm dev

@@ -34,7 +34,6 @@ Arquitectura basada en **Flask (backend)** y preparada para integrar una interfa
 ### 🤖 Modelo Predictivo
  - Predicción de costos basada en parámetros del proyecto 
  - Interfaz simple para ingreso de datos 
- - Preparado para integrar modelos SVR de scikit-learn
 
 ## 🧱 Arquitectura
 
@@ -51,7 +50,6 @@ Arquitectura basada en **Flask (backend)** y preparada para integrar una interfa
 * Aplicación de una sola página (SPA) construida con Next.js.
 * Implementa operaciones CRUD para proyectos, unidades funcionales e ítems de costo.
 * Integración robusta con la API de Flask.
-* Preparado para desarrollo asistido por IA.
 
 ---
 
@@ -60,34 +58,7 @@ Arquitectura basada en **Flask (backend)** y preparada para integrar una interfa
 ```
 Road-Project-Prediction/
 ├── backend/
-│   ├── app/
-│   │   ├── models.py              → Acceso a datos y operaciones CRUD
-│   │   ├── routes/                → Rutas de la API REST
-│   │   ├── services/              → Lógica de negocio (EDA, predicción, cálculos)
-│   │   └── config.py              → Configuración general
-│   │
-│   ├── data/                      → Archivos de datos fuente (CSV, XLSX)
-│   ├── docs/                      → Documentación de la API REST
-│   ├── instance/                  → Base de datos SQLite (`database.db`)
-│   ├── notebooks/                 → Análisis y entrenamiento (EDA, ML)
-│   ├── run.py                     → Ejecución de Flask en desarrollo
-│   ├── requirements.txt           → Dependencias del backend
-│   └── wsgi.py                    → Entrada para servidores WSGI (producción)
-│
 ├── frontend/                      → Aplicación React (Next.js)
-│   ├── app/                       → Rutas y páginas de Next.js
-│   ├── components/                → Componentes reutilizables de la UI
-│   ├── hooks/                     → Hooks personalizados de React
-│   ├── lib/                       → Utilidades y funciones de ayuda
-│   ├── public/                    → Archivos estáticos (imágenes, fuentes)
-│   ├── styles/                    → Estilos globales y configuración de Tailwind CSS
-│   ├── components.json            → Configuración de componentes (ej. Shadcn UI)
-│   ├── next.config.mjs            → Configuración de Next.js
-│   ├── package.json               → Metadatos del proyecto y dependencias
-│   ├── pnpm-lock.yaml             → Archivo de bloqueo de dependencias de pnpm
-│   ├── postcss.config.mjs         → Configuración de PostCSS
-│   └── tsconfig.json              → Configuración de TypeScript
-│
 ├── docs/                          → Documentación general (Arquitectura, changelog, etc.)
 ├── scripts.bat                    → Script para ejecutar backend/frontend en Windows
 ├── scripts.sh                     → Script para ejecutar backend/frontend en Linux/Mac
@@ -98,12 +69,20 @@ Road-Project-Prediction/
 ---
 
 ## ⚙️ Configuración del Entorno
+### 1️⃣ Clonar repositorio
 
-### 1️⃣ Crear entorno virtual
+```bash
+git clone https://github.com/arielforero/Road-Project-Prediction.git
+cd Road-Project-Prediction
+git switch dev
+```
+
+### 2️⃣ Configurar el backend
 
 #### En Windows
 
 ```bash
+cd backend
 python -m venv .venv
 .venv\Scripts\activate
 ```
@@ -111,47 +90,54 @@ python -m venv .venv
 #### En Linux/Mac
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
----
-
-### 2️⃣ Instalar dependencias del backend
+#### Instalar dependencias
 
 ```bash
-cd backend
 pip install -r requirements.txt
 ```
 
----
-
-### 3️⃣ Crear base de datos (si no existe)
+#### Crear base de datos
 
 ```bash
-python -c "from app.models import init_db; init_db()"
+# desde /backend
+python manage_migrations.py upgrade
 ```
 
-O simplemente ejecuta Flask una vez:
+Esto crea la base de datos en `instance/database.db`.
+
+#### Poblar datos desde una base anterior
 
 ```bash
-flask run
+# desde /backend
+python seed_from_old_schema.py <path_to_old_database>
+# Ejemplo:
+# mover bd antigua a la carpeta instance y renombrar a old_database.db
+python seed_from_old_schema.py instance/old_database.db
 ```
 
-y se generará `backend/instance/database.db` automáticamente.
+#### Crear archivo de entorno
 
----
+```bash
+cp .env.example .env
+```
 
-### 4️⃣ Ejecutar el backend
+Revisar y completar las variables según sea necesario.
 
-#### Opción A — Manual
+#### Ejecutar backend
+
+- Opción A — Manual
 
 ```bash
 cd backend
 flask run
 ```
 
-#### Opción B — Script multiplataforma
+- Opción B — Script multiplataforma
 
 **Windows**
 
@@ -166,9 +152,53 @@ chmod +x scripts.sh
 ./scripts.sh backend
 ```
 
+Verificar: [http://127.0.0.1:5000/api/v1/proyectos](http://127.0.0.1:5000/api/v1/proyectos)
+
 ---
 
-### 5️⃣ Ejecutar ambos (Flask + React)
+### 3️⃣ Configurar el frontend
+
+#### Instalar dependencias
+
+```bash
+cd frontend
+npm install -g pnpm # si no lo tienes instalado
+pnpm install
+```
+
+#### Crear archivo de entorno
+
+```bash
+cp .env.example .env
+```
+
+Revisar y completar las variables según sea necesario.
+
+#### Ejecutar frontend
+
+- Opción A — Manual
+
+```bash
+cd frontend
+pnpm dev
+```
+
+- Opción B — Script multiplataforma
+
+**Windows**
+
+```bash
+scripts.bat frontend
+```
+
+**Linux/Mac**
+
+```bash
+chmod +x scripts.sh
+./scripts.sh frontend
+```
+
+### 4️⃣ Ejecutar ambos (Flask + React)
 
 Cuando tengas el frontend listo:
 
@@ -185,7 +215,7 @@ scripts.bat both        # Windows
 | ------------------------ | ------------------------------------------------- | ----------------------------- |
 | **Proyectos**            | `/api/v1/proyectos`                               | CRUD de proyectos             |
 | **Unidades Funcionales** | `/api/v1/proyectos/<codigo>/unidades-funcionales` | CRUD de unidades por proyecto |
-| **Items por Fase**       | `/api/v1/proyectos/<codigo>/items?fase=fase_i`    | CRUD de items de costo        |
+| **Costos por proyecto**  | `/api/v1/proyectos/<codigo>/costos`               | CRUD de items de costo        |
 | **Predicción**           | `/api/predict`                                    | Cálculo de costo estimado     |
 
 ---
@@ -233,7 +263,7 @@ make dev                # Ejecuta ambos (backend + frontend)
 * [x] Modelo de datos con relaciones (Proyecto, UF, Items)
 * [x] Estructura RESTful jerárquica
 * [x] Inicialización de React frontend
-* [ ] CRUD completo desde UI
+* [x] CRUD completo desde UI
 * [ ] Integración del modelo predictivo real
 * [ ] Autenticación de usuarios
 * [ ] Despliegue contenedorizado (Docker)

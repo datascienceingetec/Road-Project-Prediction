@@ -14,7 +14,10 @@ python manage_migrations.py upgrade
 # 3. (Opcional) Poblar con datos antiguos
 python seed_from_old_schema.py instance/database_backup_XXXXXX.db
 
-# 4. Ejecutar aplicación
+# 4. Crear archivo de entorno
+cp .env.example .env
+
+# 5. Ejecutar aplicación
 python run.py
 ```
 
