@@ -1,15 +1,15 @@
-from services.ml.ml_direction import train_direction_model
-from services.ml.ml_geotecnia import train_geotecnia_model, prepare_geotecnia_data
-from services.ml.ml_bridges_structures import train_brindges_structures_model
-from services.ml.ml_tunnels import train_tunnel_model
-from services.ml.ml_paisajismo import train_paisajismo_model, prepare_paisajismo_data
-from services.ml.ml_cantidades_socioeconomica import train_cantidades_model
-import utils.ml_utils as ml_utils
+from app.services.ml.ml_direction import train_direction_model
+from app.services.ml.ml_geotecnia import train_geotecnia_model, prepare_geotecnia_data
+from app.services.ml.ml_bridges_structures import train_brindges_structures_model
+from app.services.ml.ml_tunnels import train_tunnel_model
+from app.services.ml.ml_paisajismo import train_paisajismo_model, prepare_paisajismo_data
+from app.services.ml.ml_cantidades_socioeconomica import train_cantidades_model
+from app.utils import ml_utils
 import pandas as pd
 import numpy as np
 
-import services.eda as eda
-import services.present_value as present_value
+from app.services import EDA
+from app.services import PresentValue
 
 def create_results_dataframe(results: dict) -> pd.DataFrame:
     rows = []
@@ -49,9 +49,9 @@ class ModelsManagement:
         self.anual_increment = None
     
     def prepare_data(self) -> pd.DataFrame:
-        self.pv = present_value.PresentValue()
+        self.pv = PresentValue()
         self.anual_increment = self.pv.fetch_incremento_from_database()
-        preproccesing = eda.EDA()
+        preproccesing = EDA()
         self.df_vp = preproccesing.create_dataset(self.pv.present_value_costs, fase=self.fase)
         return self.df_vp
 
