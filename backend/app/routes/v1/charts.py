@@ -7,7 +7,7 @@ from sqlalchemy import func
 import numpy as np
 import unicodedata
 from math import sqrt
-from app.services import ModelService, ModelsManagement
+from app.services import ModelService
 from app.utils import calculate_present_value, normalize_key
 
 charts_bp = Blueprint("charts_v1", __name__)
@@ -487,22 +487,20 @@ def get_item_real_vs_predicted():
 
         print(fase_item_req.descripcion)
 
-        # Cargar modelo
+        # Cargar modelo y datos usando el adapter
         model_service = ModelService()
-        model_data = model_service.load_models(fase_id)
+        
+        try:
+            comparison_data = model_service.get_comparison_data(fase_id, fase_item_req.descripcion)
+            df = comparison_data['historical_data']
+            item_column = comparison_data['item_column']
+            target_models = comparison_data['models']
+            
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
 
-        if not model_data:
-            return jsonify({
-                'error': f'No hay modelos entrenados para la fase {fase.nombre}'
-            }), 404
-
-        target_models = model_data.get('models') or {}
-        if not target_models:
-            return jsonify({
-                'error': 'El archivo de modelos no contiene información válida'
-            }), 500
-
-        print(target_models.keys())
+        print(f"Found item column: {item_column}")
+        print(f"Available models: {list(target_models.keys())}")
 
         # Buscar modelo correspondiente al ítem
         target_key = None
@@ -520,32 +518,13 @@ def get_item_real_vs_predicted():
                 )
             }), 400
 
-        # Preparar dataset histórico usando el mismo pipeline
-        fase_code = model_service.adapter._map_fase_id_to_code(fase_id)
-        mm = ModelsManagement(fase_code)
-        df = mm.prepare_data()
-
-        # if alcance_filter:
-        #     df = df[df['ALCANCE'].astype(str).str.casefold() == alcance_filter.casefold()]
-
-        required_columns = [
-            'CÓDIGO', 'NOMBRE DEL PROYECTO', 'ALCANCE', 'LONGITUD KM',
-            'PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2',
-            'PUENTES PEATONALES UND', 'PUENTES PEATONALES M2',
-            'TUNELES UND', 'TUNELES KM'
-        ]
-
-        for col in required_columns:
-            if col not in df.columns:
-                df[col] = 0
-
         points = []
         real_values = []
         predicted_values = []
 
-        # Calcular valores reales vs predichos
+        # Calcular valores reales vs predichos usando columnas normalizadas
         for _, row in df.iterrows():
-            actual_value = row.get(target_key)
+            actual_value = row.get(item_column)
             if actual_value is None or (isinstance(actual_value, float) and np.isnan(actual_value)):
                 continue
 
@@ -553,15 +532,15 @@ def get_item_real_vs_predicted():
                 continue
 
             pred_params = {
-                'codigo': row.get('CÓDIGO', ''),
-                'longitud_km': float(row.get('LONGITUD KM') or 0),
-                'puentes_vehiculares_und': int(row.get('PUENTES VEHICULARES UND') or 0),
-                'puentes_vehiculares_m2': float(row.get('PUENTES VEHICULARES M2') or 0),
-                'puentes_peatonales_und': int(row.get('PUENTES PEATONALES UND') or 0),
-                'puentes_peatonales_m2': float(row.get('PUENTES PEATONALES M2') or 0),
-                'tuneles_und': int(row.get('TUNELES UND') or 0),
-                'tuneles_km': float(row.get('TUNELES KM') or 0),
-                'alcance': row.get('ALCANCE', '') or ''
+                'codigo': row.get('codigo', ''),
+                'longitud_km': float(row.get('longitud_km') or 0),
+                'puentes_vehiculares_und': int(row.get('puentes_vehiculares_und') or 0),
+                'puentes_vehiculares_m2': float(row.get('puentes_vehiculares_m2') or 0),
+                'puentes_peatonales_und': int(row.get('puentes_peatonales_und') or 0),
+                'puentes_peatonales_m2': float(row.get('puentes_peatonales_m2') or 0),
+                'tuneles_und': int(row.get('tuneles_und') or 0),
+                'tuneles_km': float(row.get('tuneles_km') or 0),
+                'alcance': row.get('alcance', '') or ''
             }
 
             predictions = model_service.adapter.predict(
@@ -578,10 +557,10 @@ def get_item_real_vs_predicted():
             valor_predicho = float(predicted_value)
 
             points.append({
-                'codigo': row.get('CÓDIGO', ''),
-                'proyecto': row.get('NOMBRE DEL PROYECTO', ''),
-                'alcance': row.get('ALCANCE', ''),
-                'longitud_km': float(row.get('LONGITUD KM') or 0),
+                'codigo': row.get('codigo', ''),
+                'proyecto': row.get('nombre_proyecto', ''),
+                'alcance': row.get('alcance', ''),
+                'longitud_km': float(row.get('longitud_km') or 0),
                 'valor_real': valor_real,
                 'valor_predicho': valor_predicho
             })

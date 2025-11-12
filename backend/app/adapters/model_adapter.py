@@ -84,6 +84,47 @@ class ModelAdapterInterface(ABC):
             Trained models dictionary or None if not found
         """
         pass
+    
+    @abstractmethod
+    def get_historical_data(self, fase_id: int) -> pd.DataFrame:
+        """
+        Get historical project data for charts and analysis.
+        
+        Args:
+            fase_id: Phase ID from database
+            
+        Returns:
+            DataFrame with standardized column names:
+            - codigo: str
+            - nombre_proyecto: str
+            - alcance: str
+            - longitud_km: float
+            - puentes_vehiculares_und: int
+            - puentes_vehiculares_m2: float
+            - puentes_peatonales_und: int
+            - puentes_peatonales_m2: float
+            - tuneles_und: int
+            - tuneles_km: float
+            - [item columns with normalized names]
+        """
+        pass
+    
+    @abstractmethod
+    def get_comparison_data(self, fase_id: int, item_name: str) -> Dict[str, Any]:
+        """
+        Get real vs predicted comparison data for a specific item.
+        
+        Args:
+            fase_id: Phase ID from database
+            item_name: Name of the item to compare
+            
+        Returns:
+            Dictionary with:
+            - historical_data: DataFrame with project data
+            - item_column: str (name of the column containing the item values)
+            - models: Dict (trained models for predictions)
+        """
+        pass
 
 
 class LegacyModelAdapter(ModelAdapterInterface):
@@ -195,6 +236,84 @@ class LegacyModelAdapter(ModelAdapterInterface):
         """
         fase_code = self._map_fase_id_to_code(fase_id)
         return self._save_models_legacy(fase_code, models, metadata, summary_df)
+    
+    def get_historical_data(self, fase_id: int) -> pd.DataFrame:
+        """
+        Get historical project data with standardized column names.
+        Implements ModelAdapterInterface.
+        
+        Args:
+            fase_id: Phase ID from database
+            
+        Returns:
+            DataFrame with normalized column names
+        """
+        fase_code = self._map_fase_id_to_code(fase_id)
+        mm = ModelsManagement(fase_code)
+        df = mm.prepare_data()
+        
+        # Normalize column names to standard format
+        column_mapping = {
+            'CÓDIGO': 'codigo',
+            'NOMBRE DEL PROYECTO': 'nombre_proyecto',
+            'ALCANCE': 'alcance',
+            'LONGITUD KM': 'longitud_km',
+            'PUENTES VEHICULARES UND': 'puentes_vehiculares_und',
+            'PUENTES VEHICULARES M2': 'puentes_vehiculares_m2',
+            'PUENTES PEATONALES UND': 'puentes_peatonales_und',
+            'PUENTES PEATONALES M2': 'puentes_peatonales_m2',
+            'TUNELES UND': 'tuneles_und',
+            'TUNELES KM': 'tuneles_km'
+        }
+        
+        # Rename columns that exist
+        df = df.rename(columns=column_mapping)
+        
+        # Ensure required columns exist
+        required_columns = list(column_mapping.values())
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = 0
+        
+        return df
+    
+    def get_comparison_data(self, fase_id: int, item_name: str) -> Dict[str, Any]:
+        """
+        Get real vs predicted comparison data for a specific item.
+        Implements ModelAdapterInterface.
+        
+        Args:
+            fase_id: Phase ID from database
+            item_name: Name of the item to compare
+            
+        Returns:
+            Dictionary with historical data, item column, and models
+        """
+        # Get historical data
+        df = self.get_historical_data(fase_id)
+        
+        # Load models
+        model_data = self.load_models(fase_id)
+        if not model_data:
+            raise ValueError(f"No trained models found for fase_id {fase_id}")
+        
+        models = model_data['models']
+        
+        # Find the item column in the DataFrame
+        item_column = None
+        for col in df.columns:
+            if col == item_name or item_name in col or col in item_name:
+                item_column = col
+                break
+        
+        if not item_column:
+            raise ValueError(f"Item '{item_name}' not found in historical data")
+        
+        return {
+            'historical_data': df,
+            'item_column': item_column,
+            'models': models
+        }
     
     # Legacy implementation methods (private)
     def _train_models_legacy(self, fase: str) -> Dict[str, Any]:

@@ -154,3 +154,28 @@ class ModelService:
             print(f"Training summary has metrics for {len(training_summary)} items")
         
         return training_summary
+    
+    def get_historical_data(self, fase_id: int) -> 'pd.DataFrame':
+        """
+        Get historical project data for charts and analysis
+        
+        Args:
+            fase_id: Phase ID from database
+            
+        Returns:
+            DataFrame with standardized column names
+        """
+        return self.adapter.get_historical_data(fase_id)
+    
+    def get_comparison_data(self, fase_id: int, item_name: str) -> Dict[str, Any]:
+        """
+        Get real vs predicted comparison data for a specific item
+        
+        Args:
+            fase_id: Phase ID from database
+            item_name: Name of the item to compare
+            
+        Returns:
+            Dictionary with historical data, item column, and models
+        """
+        return self.adapter.get_comparison_data(fase_id, item_name)
