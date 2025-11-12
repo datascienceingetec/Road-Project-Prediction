@@ -221,27 +221,48 @@ class ModelsManagement:
                 predictions['3 - GEOLOGÍA'] = None
         
         if '4 - SUELOS' in models:
-            model_suelos = models['4 - SUELOS']['model']
-            predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
+            if puentes_vehiculares_und > 0 and puentes_vehiculares_m2 > 0 :
+                model_suelos = models['4 - SUELOS']['model']
+                predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
+            else:   
+                predictions['4 - SUELOS'] = None    
         
         if '8 - ESTRUCTURAS' in models:
-            model_estructuras = models['8 - ESTRUCTURAS']['model']
-            predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
+            if puentes_vehiculares_und > 0 and puentes_vehiculares_m2 > 0:
+                model_estructuras = models['8 - ESTRUCTURAS']['model']
+                predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
+            else:
+                predictions['8 - ESTRUCTURAS'] = None
         
-        if '9 - TÚNELES' in models and tuneles_km > 0 and predictions.get('4 - SUELOS') is not None:
-            model_tuneles = models['9 - TÚNELES']['model']
-            X_tuneles = np.array([[np.log1p(predictions['4 - SUELOS']), np.log1p(tuneles_km)]])
-            predictions['9 - TÚNELES'] = np.expm1(model_tuneles.predict(X_tuneles)[0])
-        else:
-            predictions['9 - TÚNELES'] = None
+        if '9 - TÚNELES' in models:
+            if tuneles_km > 0 and predictions.get('4 - SUELOS') is not None:
+                model_tuneles = models['9 - TÚNELES']['model']
+                suelos_log = np.log1p(predictions['4 - SUELOS'])
+                tuneles_km_log = np.log1p(tuneles_km)
+                prediction_log = model_tuneles.predict(np.array([[suelos_log, tuneles_km_log]]))[0]
+                predictions['9 - TÚNELES'] = np.expm1(prediction_log)
+            else:
+                predictions['9 - TÚNELES'] = None
         
         if '10 - URBANISMO Y PAISAJISMO' in models:
-            model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
-            predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(np.array([[puentes_peatonales_und]]))[0]
+            if puentes_peatonales_und > 0 and puentes_peatonales_m2 > 0:
+                model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
+                predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(np.array([[puentes_peatonales_und]]))[0]
+            else:
+                predictions['10 - URBANISMO Y PAISAJISMO'] = None
         
         if '13 - CANTIDADES' in models:
-            model_cant = models['13 - CANTIDADES']['model']
-            X_cant = np.array([[puentes_vehiculares_und, puentes_vehiculares_m2, puentes_peatonales_und]])
-            predictions['13 - CANTIDADES'] = model_cant.predict(X_cant)[0]
+            if puentes_vehiculares_und > 0 and puentes_vehiculares_m2 > 0 and puentes_peatonales_und > 0:
+                model_cant = models['13 - CANTIDADES']['model'] 
+                X_cant = np.array([[puentes_vehiculares_und, puentes_vehiculares_m2, puentes_peatonales_und]])
+                predictions['13 - CANTIDADES'] = model_cant.predict(X_cant)[0]
+                
+            else:
+                predictions['13 - CANTIDADES'] = None
+        
+        # Ensure no negative predictions
+        for key, value in predictions.items():
+            if value is not None and value < 0:
+                predictions[key] = None
         
         return predictions
