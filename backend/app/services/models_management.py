@@ -63,7 +63,7 @@ class ModelsManagement:
         else:
             raise ValueError(f"Fase {self.fase} no soportada")
 
-    def train_models_fase_II(self) -> dict:
+    def train_models_fase_II(self) -> tuple[dict, pd.DataFrame]:
         predictors = ['LONGITUD KM']
         hue_name = 'ALCANCE'
         
@@ -71,12 +71,17 @@ class ModelsManagement:
                 '3 - GEOLOGÍA (incluye subcomponentes)', '8 - PAVIMENTO', '9 - PREDIAL', '10 - AMBIENTAL Y SOCIAL',
                 '11 - COSTOS Y PRESUPUESTOS', '12 - SOCIOECONÓMICA', '13 - DIRECCIÓN Y COORDINACIÓN']
         
-        df = self.df_vp[['LONGITUD KM', 'ALCANCE']].join(self.df_vp.loc[:, '1 - TRANSPORTE':])
-        # results = train_and_calculate_metrics(df, targets, predictors, hue_name)
+        # df = self.df_vp[['LONGITUD KM', 'ALCANCE']].join(self.df_vp.loc[:, '1 - TRANSPORTE':])
+        results = {}
+        for target in targets:
+            linear_depedent_results = ml_utils.train_models_by_alcance_and_transform(self.df_vp, predictors, target, hue_name, min_samples=3)
+            # linear_depedent_results = train_direction_model(self.df_vp, predictors, target, 'ALCANCE')
+            results[target] = ml_utils.consolidate_results_by_alcance(linear_depedent_results)
         
-        return Exception('Not implemented')
+        summary_df = create_results_dataframe(results)
+        return results, summary_df
 
-    def train_models_fase_III(self) -> dict:
+    def train_models_fase_III(self) -> tuple[dict, pd.DataFrame]:
         predictors = ['LONGITUD KM']
         hue_name = 'ALCANCE'
         
@@ -109,9 +114,10 @@ class ModelsManagement:
         target_estructuras = '8 - ESTRUCTURAS'
         results[target_estructuras] = train_brindges_structures_model(self.df_vp, target_estructuras, predictors_estructuras, exclude_codes=['0654801'], use_log_transform=False)
         
+        predictors_tuneles = ['4 - SUELOS', 'TUNELES KM']
         target_tuneles = '9 - TÚNELES'
-        predictors_tuneles = ['TUNELES UND', 'TUNELES KM']
-        results[target_tuneles] = train_tunnel_model(self.df_vp, predictors_tuneles, target_tuneles)
+        X, y, y_pred, model, metrics = ml_utils.train_multiple_models(self.df_vp, predictors_tuneles, target_tuneles, log_transform='both')
+        results[target_tuneles] = {'X': X, 'y': y, 'y_predicted': y_pred, 'model': model, 'metrics': metrics, 'log_transform': 'both'}
         
         df_pais = prepare_paisajismo_data(self.df_vp)
         predictors_pais = ['PUENTES PEATONALES UND']
@@ -222,15 +228,10 @@ class ModelsManagement:
             model_estructuras = models['8 - ESTRUCTURAS']['model']
             predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
         
-        if '9 - TÚNELES' in models and (tuneles_und > 0 or tuneles_km > 0):
+        if '9 - TÚNELES' in models and tuneles_km > 0 and predictions.get('4 - SUELOS') is not None:
             model_tuneles = models['9 - TÚNELES']['model']
-            X_tuneles = pd.DataFrame({
-                'TUNELES UND': [tuneles_und],
-                'TUNELES KM': [tuneles_km],
-                'TUNELES UND_LOG': [np.log1p(tuneles_und)],
-                'TUNELES KM_LOG': [np.log1p(tuneles_km)]
-            })
-            predictions['9 - TÚNELES'] = model_tuneles.predict(X_tuneles)[0]
+            X_tuneles = np.array([[np.log1p(predictions['4 - SUELOS']), np.log1p(tuneles_km)]])
+            predictions['9 - TÚNELES'] = np.expm1(model_tuneles.predict(X_tuneles)[0])
         else:
             predictions['9 - TÚNELES'] = None
         
