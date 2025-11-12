@@ -77,11 +77,15 @@ export function PredictionComparisonChart({
 
   const colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
-  // Crear una traza por alcance (sin variar tamaño)
+  // Usar el predictor específico en lugar de siempre longitud
+  const predictorName = metadata.predictor_name || "Longitud (Km)"
+  const isLengthPredictor = predictorName.includes("Longitud")
+
+  // Crear una traza por alcance usando el predictor correcto
   const scatterData = Object.keys(groupedByAlcance).map((alcance) => {
     const group = groupedByAlcance[alcance]
     return {
-      x: group.map((p: any) => p.longitud_km),
+      x: group.map((p: any) => p.predictor_value || p.longitud_km),
       y: group.map((p: any) => p.costo_millones),
       mode: "markers",
       type: "scatter",
@@ -94,6 +98,7 @@ export function PredictionComparisonChart({
           `Fase: ${p.fase}<br>` +
           `Alcance: ${p.alcance}<br>` +
           `Longitud: ${p.longitud_km.toFixed(2)} km<br>` +
+          `${predictorName}: ${(p.predictor_value || p.longitud_km).toFixed(2)}<br>` +
           `Costo VP: ${p.costo_millones.toFixed(2)} Millones<br>` +
           `Costo Total VP: ${p.costo_total_vp.toLocaleString("es-CO", { maximumFractionDigits: 0 })} COP`
       ),
@@ -113,15 +118,16 @@ export function PredictionComparisonChart({
         y: trend_line.y,
         mode: "lines",
         type: "scatter",
-        name: `Tendencia lineal (R² aprox)`,
+        name: `Tendencia ${predictorName}`,
         line: { color: "red", width: 2, dash: "dash" },
-        hovertemplate: "Línea de tendencia<extra></extra>",
+        hovertemplate: `Línea de tendencia (${predictorName})<extra></extra>`,
       }
     : null
 
-  // Punto de predicción actual
+  // Punto de predicción actual - usar predictor apropiado
+  const predictorValue = isLengthPredictor ? predictedLength : predictedLength // Por ahora usar longitud como fallback
   const predictedPoint = {
-    x: [predictedLength],
+    x: [predictorValue],
     y: [predictedValue / 1_000_000],
     mode: "markers",
     type: "scatter",
@@ -129,6 +135,7 @@ export function PredictionComparisonChart({
     text: [
       `<b>PREDICCIÓN</b><br>` +
         `Longitud: ${predictedLength.toFixed(2)} km<br>` +
+        `${predictorName}: ${predictorValue.toFixed(2)}<br>` +
         `Costo Predicho: ${(predictedValue / 1_000_000).toFixed(2)} Millones<br>` +
         `Item: ${itemNombre}`,
     ],
@@ -151,7 +158,7 @@ export function PredictionComparisonChart({
         data={plotData as any}
         layout={{
           title: {
-            text: `<b>${itemNombre}</b><br><sub>Costo vs Longitud (${metadata.present_year})</sub>`,
+            text: `<b>${itemNombre}</b><br><sub>Costo vs ${predictorName} (${metadata.present_year})</sub>`,
             font: { size: 16, family: "Arial", color: "#1a252f" },
             x: 0.5,
             xanchor: "center",
@@ -160,7 +167,7 @@ export function PredictionComparisonChart({
           autosize: true,
           height: 500,
           xaxis: {
-            title: { text: "LONGITUD KM", font: { size: 13 } },
+            title: { text: predictorName.toUpperCase(), font: { size: 13 } },
             showgrid: true,
             gridcolor: "lightgray",
             gridwidth: 0.5,

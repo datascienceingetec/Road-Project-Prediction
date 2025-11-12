@@ -8,7 +8,7 @@ import numpy as np
 import unicodedata
 from math import sqrt
 from app.services import ModelService
-from app.utils import calculate_present_value, normalize_key
+from app.utils.charts_utils import calculate_present_value, normalize_key, get_predictor_config, calculate_predictor_value
 
 charts_bp = Blueprint("charts_v1", __name__)
 
@@ -306,10 +306,15 @@ def get_causacion_por_km():
 @charts_bp.route('/item-comparison', methods=['GET'])
 def get_item_comparison():
     """
-    Endpoint para obtener datos de comparación histórica de un ítem específico (versión detallada por UF).
+    Endpoint para obtener datos de comparación histórica de un ítem específico con predictores adaptativos.
 
-    Aplica pesos por longitud de las unidades funcionales (UF) dentro de cada proyecto,
-    de modo que el costo total del ítem se distribuya proporcionalmente según la longitud_km de cada UF.
+    Usa predictores específicos según el tipo de ítem:
+    - Suelos (4): Puentes Vehiculares M²
+    - Estructuras (8): Puentes Vehiculares (Unidades)
+    - Túneles (9): Túneles (Unidades + Km)
+    - Urbanismo y Paisajismo (10): Puentes Peatonales (Unidades)
+    - Cantidades (13): Puentes Combinados (Vehiculares + Peatonales)
+    - Otros: Longitud (Km) - por defecto
 
     Query Parameters:
     - item_tipo_id: ID del tipo de ítem a comparar (requerido)
@@ -317,9 +322,9 @@ def get_item_comparison():
     - present_year: Año presente para cálculo de valor presente. Default: 2025
 
     Returns:
-    - historical_data: Lista de UFs con el ítem calculado a valor presente (ponderado)
-    - trend_line: Línea de regresión lineal global
-    - metadata: Información sobre el ítem y filtros aplicados
+    - historical_data: Lista de UFs con predictor_value y predictor_name
+    - trend_line: Regresión lineal usando el predictor específico
+    - metadata: Información sobre el ítem, filtros y predictor usado
     """
     try:
         item_tipo_id = request.args.get('item_tipo_id', type=int)
@@ -333,6 +338,11 @@ def get_item_comparison():
         item_tipo = ItemTipo.query.get(item_tipo_id)
         if not item_tipo:
             return jsonify({'error': f'Item con ID {item_tipo_id} no encontrado'}), 404
+        
+        # Configurar predictores específicos según el tipo de ítem
+        predictor_config = get_predictor_config(item_tipo.nombre)
+        predictor_columns = predictor_config['predictors']
+        predictor_name = predictor_config['name']
 
         # Query detallada por Unidad Funcional (no agregada por proyecto)
         query = (
@@ -345,6 +355,12 @@ def get_item_comparison():
                 UnidadFuncional.id.label('uf_id'),
                 UnidadFuncional.alcance,
                 UnidadFuncional.longitud_km,
+                UnidadFuncional.puentes_vehiculares_und,
+                UnidadFuncional.puentes_vehiculares_mt2,
+                UnidadFuncional.puentes_peatonales_und,
+                UnidadFuncional.puentes_peatonales_mt2,
+                UnidadFuncional.tuneles_und,
+                UnidadFuncional.tuneles_km,
                 CostoItem.valor.label('valor_item')
             )
             .join(Fase, Proyecto.fase_id == Fase.id)
@@ -394,6 +410,9 @@ def get_item_comparison():
 
             # Ponderar el costo por longitud de la UF
             costo_vp_ponderado = costo_vp_total * uf_weight
+            
+            # Calcular valor del predictor específico para este ítem
+            predictor_value = calculate_predictor_value(row, predictor_columns)
 
             historical_data.append({
                 'codigo': row.codigo,
@@ -406,17 +425,19 @@ def get_item_comparison():
                 'peso_longitud': round(uf_weight, 4),
                 'costo_total_vp': float(costo_vp_ponderado),
                 'costo_millones': float(costo_vp_ponderado / 1_000_000),
+                'predictor_value': predictor_value,
+                'predictor_name': predictor_name,
                 'unidades_funcionales': 1
             })
 
         # ----------------------------------------------------------------------
-        # 3️⃣ Calcular línea de tendencia global (regresión lineal por UF)
+        # 3️⃣ Calcular línea de tendencia global usando el predictor específico
         # ----------------------------------------------------------------------
-        valid_data = [p for p in historical_data if p['longitud_km'] > 0 and p['costo_millones'] > 0]
+        valid_data = [p for p in historical_data if p['predictor_value'] > 0 and p['costo_millones'] > 0]
         trend_line = None
 
         if len(valid_data) >= 2:
-            X = np.array([[p['longitud_km']] for p in valid_data])
+            X = np.array([[p['predictor_value']] for p in valid_data])
             y = np.array([p['costo_millones'] for p in valid_data])
 
             model = LinearRegression()
@@ -428,7 +449,8 @@ def get_item_comparison():
                 'x': X[sort_idx].flatten().tolist(),
                 'y': y_pred[sort_idx].tolist(),
                 'slope': float(model.coef_[0]),
-                'intercept': float(model.intercept_)
+                'intercept': float(model.intercept_),
+                'predictor_name': predictor_name
             }
 
         # ----------------------------------------------------------------------
@@ -443,7 +465,9 @@ def get_item_comparison():
                 'fase_id': fase_id,
                 'present_year': present_year,
                 'total_projects': len(set([p['codigo'] for p in historical_data])),
-                'total_ufs': len(historical_data)
+                'total_ufs': len(historical_data),
+                'predictor_name': predictor_name,
+                'predictor_columns': predictor_columns
             }
         })
 
