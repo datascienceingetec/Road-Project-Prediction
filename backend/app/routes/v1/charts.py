@@ -1,36 +1,16 @@
 from app.models import AlcanceEnum
-from app.models import db, Proyecto, UnidadFuncional, CostoItem, ItemTipo, Fase, AnualIncrement
+from app.models import db, Proyecto, UnidadFuncional, CostoItem, ItemTipo, Fase, FaseItemRequerido
 from collections import defaultdict
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from sklearn.linear_model import LinearRegression
 from sqlalchemy import func
 import numpy as np
 import unicodedata
+from math import sqrt
+from app.services import ModelService, ModelsManagement
+from app.utils import calculate_present_value, normalize_key
 
 charts_bp = Blueprint("charts_v1", __name__)
-
-
-def calculate_present_value(past_value, past_year, present_year):
-    """Calculate present value using annual increments from database"""
-    if past_year is None or present_year <= past_year:
-        return float(past_value)
-    
-    # Get annual increments
-    increments = AnualIncrement.query.filter(
-        AnualIncrement.ano > past_year,
-        AnualIncrement.ano <= present_year
-    ).order_by(AnualIncrement.ano).all()
-    
-    # Apply compound increments
-    factor = 1.0
-    for inc in increments:
-        inc_value = inc.valor
-        if inc_value > 1.0:
-            inc_value = inc_value / 100.0
-        factor *= (1.0 + inc_value)
-    
-    return float(past_value) * factor
-
 
 @charts_bp.route('/valor-presente-causacion', methods=['GET'])
 def get_valor_presente_causacion():
@@ -470,6 +450,185 @@ def get_item_comparison():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@charts_bp.route('/item-real-vs-predicted', methods=['GET'])
+def get_item_real_vs_predicted():
+    """
+    Endpoint que devuelve la comparativa de valor real vs valor predicho
+    para un ítem específico utilizando el mismo modelo empleado en las
+    predicciones actuales.
+    """
+    try:
+        # Parámetros del request
+        item_tipo_id = request.args.get('item_tipo_id', type=int)
+        fase_id = request.args.get('fase_id', type=int)
+        alcance_filter = request.args.get('alcance', type=str)
+
+        # Validaciones iniciales
+        if not item_tipo_id:
+            return jsonify({'error': 'item_tipo_id es requerido'}), 400
+        if not fase_id:
+            return jsonify({'error': 'fase_id es requerido'}), 400
+
+        # Obtener fase
+        fase = Fase.query.get(fase_id)
+        if not fase:
+            return jsonify({'error': f'Fase con ID {fase_id} no encontrada'}), 404
+
+        # Obtener el ítem requerido
+        fase_item_req = FaseItemRequerido.query.filter_by(
+            fase_id=fase_id,
+            item_tipo_id=item_tipo_id
+        ).first()
+
+        if not fase_item_req:
+            return jsonify({
+                'error': f'Item con ID {item_tipo_id} no encontrado para la fase {fase_id}'
+            }), 404
+
+        print(fase_item_req.descripcion)
+
+        # Cargar modelo
+        model_service = ModelService()
+        model_data = model_service.load_models(fase_id)
+
+        if not model_data:
+            return jsonify({
+                'error': f'No hay modelos entrenados para la fase {fase.nombre}'
+            }), 404
+
+        target_models = model_data.get('models') or {}
+        if not target_models:
+            return jsonify({
+                'error': 'El archivo de modelos no contiene información válida'
+            }), 500
+
+        print(target_models.keys())
+
+        # Buscar modelo correspondiente al ítem
+        target_key = None
+        normalized_item_name = normalize_key(fase_item_req.descripcion)
+        for key in target_models.keys():
+            if normalize_key(key) == normalized_item_name:
+                target_key = key
+                break
+
+        if not target_key:
+            return jsonify({
+                'error': (
+                    f'El ítem "{fase_item_req.descripcion}" '
+                    'no tiene un modelo asociado en la fase seleccionada'
+                )
+            }), 400
+
+        # Preparar dataset histórico usando el mismo pipeline
+        fase_code = model_service.adapter._map_fase_id_to_code(fase_id)
+        mm = ModelsManagement(fase_code)
+        df = mm.prepare_data()
+
+        # if alcance_filter:
+        #     df = df[df['ALCANCE'].astype(str).str.casefold() == alcance_filter.casefold()]
+
+        required_columns = [
+            'CÓDIGO', 'NOMBRE DEL PROYECTO', 'ALCANCE', 'LONGITUD KM',
+            'PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2',
+            'PUENTES PEATONALES UND', 'PUENTES PEATONALES M2',
+            'TUNELES UND', 'TUNELES KM'
+        ]
+
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = 0
+
+        points = []
+        real_values = []
+        predicted_values = []
+
+        # Calcular valores reales vs predichos
+        for _, row in df.iterrows():
+            actual_value = row.get(target_key)
+            if actual_value is None or (isinstance(actual_value, float) and np.isnan(actual_value)):
+                continue
+
+            if float(actual_value) == 0:
+                continue
+
+            pred_params = {
+                'codigo': row.get('CÓDIGO', ''),
+                'longitud_km': float(row.get('LONGITUD KM') or 0),
+                'puentes_vehiculares_und': int(row.get('PUENTES VEHICULARES UND') or 0),
+                'puentes_vehiculares_m2': float(row.get('PUENTES VEHICULARES M2') or 0),
+                'puentes_peatonales_und': int(row.get('PUENTES PEATONALES UND') or 0),
+                'puentes_peatonales_m2': float(row.get('PUENTES PEATONALES M2') or 0),
+                'tuneles_und': int(row.get('TUNELES UND') or 0),
+                'tuneles_km': float(row.get('TUNELES KM') or 0),
+                'alcance': row.get('ALCANCE', '') or ''
+            }
+
+            predictions = model_service.adapter.predict(
+                fase_id=fase_id,
+                models=target_models,
+                **pred_params
+            )
+
+            predicted_value = predictions.get(target_key)
+            if predicted_value is None or (isinstance(predicted_value, float) and np.isnan(predicted_value)):
+                continue
+
+            valor_real = float(actual_value)
+            valor_predicho = float(predicted_value)
+
+            points.append({
+                'codigo': row.get('CÓDIGO', ''),
+                'proyecto': row.get('NOMBRE DEL PROYECTO', ''),
+                'alcance': row.get('ALCANCE', ''),
+                'longitud_km': float(row.get('LONGITUD KM') or 0),
+                'valor_real': valor_real,
+                'valor_predicho': valor_predicho
+            })
+
+            real_values.append(valor_real)
+            predicted_values.append(valor_predicho)
+
+        # Métricas de error
+        summary = {'count': len(points), 'mae': None, 'rmse': None, 'r2': None}
+
+        print(len(points))
+        if len(points) >= 2:
+            real_array = np.array(real_values)
+            pred_array = np.array(predicted_values)
+
+            summary['mae'] = float(np.mean(np.abs(real_array - pred_array)))
+            summary['rmse'] = float(sqrt(np.mean((real_array - pred_array) ** 2)))
+
+            ss_res = np.sum((real_array - pred_array) ** 2)
+            ss_tot = np.sum((real_array - real_array.mean()) ** 2)
+            summary['r2'] = float(1 - ss_res / ss_tot) if ss_tot > 0 else None
+
+        # Línea ideal (y = x)
+        if points:
+            min_value = float(min(real_values + predicted_values))
+            max_value = float(max(real_values + predicted_values))
+            ideal_line = {'x': [min_value, max_value], 'y': [min_value, max_value]}
+        else:
+            ideal_line = None
+
+        # Respuesta final
+        return jsonify({
+            'points': points,
+            'ideal_line': ideal_line,
+            'summary': summary,
+            'metadata': {
+                'item_nombre': fase_item_req.descripcion,
+                'fase_id': fase_id,
+                'fase': fase.nombre,
+                'modelo_disponible': True,
+                'alcance': alcance_filter,
+                'predictor_name': 'LONGITUD KM'
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @charts_bp.route('/health', methods=['GET'])
 def health_check():

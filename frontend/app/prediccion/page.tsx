@@ -5,6 +5,7 @@ import { api, type Fase, type FunctionalUnitFormData, type MetricRow, type Predi
 import { formatCurrency } from "@/lib/utils"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
 import { PredictionComparisonChart } from "@/components/charts/prediction-comparison-chart"
+import { PredictionRealVsPredictedChart } from "@/components/charts/prediction-real-vs-predicted-chart"
 import { ModelMetrics } from "@/components/prediction/model-metrics"
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
@@ -496,6 +497,14 @@ export default function PrediccionPage() {
                               predictedValue={selectedItem.causacion_estimada}
                               predictedLength={prediction.resultados[activeTab].longitud_km}
                             />
+                            { selectedItem.predicted &&
+                              <PredictionRealVsPredictedChart
+                                itemNombre={selectedItem.item}
+                                itemTipoId={selectedItem.item_tipo_id}
+                                faseId={formData.fase_id}
+                                alcance={prediction.resultados[activeTab].alcance}
+                              />
+                            }
                           </div>
                           
                           <ModelMetrics metrics={modelMetrics} />

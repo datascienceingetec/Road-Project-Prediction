@@ -8,6 +8,8 @@ from .item_helpers import (
     get_parent_items
 )
 
+from .charts_utils import calculate_present_value, normalize_key
+
 from . import ml_utils
 
 __all__ = [
@@ -16,5 +18,7 @@ __all__ = [
     'calculate_parent_values',
     'build_parent_child_map',
     'get_parent_items',
+    'calculate_present_value',
+    'normalize_key',
     'ml_utils'
 ]

@@ -167,6 +167,14 @@ export const api = {
     return fetchAPI(`/charts/item-comparison?${params.toString()}`)
   },
 
+  async getItemRealVsPredicted(itemTipoId: number, faseId: number, alcance?: string) {
+    const params = new URLSearchParams()
+    params.append('item_tipo_id', String(itemTipoId))
+    params.append('fase_id', String(faseId))
+    if (alcance) params.append('alcance', alcance)
+    return fetchAPI(`/charts/item-real-vs-predicted?${params.toString()}`)
+  },
+
   // ---------- Model Training ----------
   async trainModel(fase_id: number) {
     return fetchAPI('/predict/train', { 
