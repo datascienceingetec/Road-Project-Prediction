@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, type Fase, type FunctionalUnitFormData, type MetricRow, type PredictionResponse, type UnidadFuncionalPrediction, type AvailableModel } from "@/lib/api"
+import { api } from "@/lib/api"
+import type { Fase, EnumOption, PredictionRequest, PredictionResponse, UnidadFuncional, FunctionalUnitFormData, MetricRow, AvailableModel } from "@/lib/api/types"
 import { formatCurrency } from "@/lib/utils"
+import { toast } from "sonner"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
 import { PredictionComparisonChart } from "@/components/charts/prediction-comparison-chart"
 import { PredictionRealVsPredictedChart } from "@/components/charts/prediction-real-vs-predicted-chart"
@@ -117,7 +119,7 @@ export default function PrediccionPage() {
     const selectedPhaseModel = availableModels.find(m => m.fase_id === formData.fase_id)
     if (!selectedPhaseModel || !selectedPhaseModel.available) {
       const faseName = fases.find(f => f.id === formData.fase_id)?.nombre || 'seleccionada'
-      alert(`No hay modelo entrenado disponible para ${faseName}. Por favor, entrena un modelo primero usando el botón "Reentrenar Modelo".`)
+      toast.error(`No hay modelo entrenado disponible para ${faseName}. Por favor, entrena un modelo primero usando el botón "Reentrenar Modelo".`)
       return
     }
 
@@ -137,7 +139,9 @@ export default function PrediccionPage() {
       setActiveTab(0)
     } catch (error: any) {
       console.error('Error in prediction:', error)
-      alert(error.message || 'Error al realizar la predicción')
+      toast.error('Error al realizar la predicción', {
+        description: error.message || 'Error desconocido'
+      })
     } finally {
       setLoading(false)
     }
@@ -176,7 +180,7 @@ export default function PrediccionPage() {
 
   const handleTrainModel = async () => {
     if (!selectedTrainFaseId) {
-      alert('Por favor selecciona una fase para entrenar')
+      toast.warning('Por favor selecciona una fase para entrenar')
       return
     }
     
@@ -184,13 +188,15 @@ export default function PrediccionPage() {
     try {
       const result = await api.trainModel(selectedTrainFaseId)
       const selectedModel = availableModels.find(m => m.fase_id === selectedTrainFaseId)
-      alert(`Modelo de ${selectedModel?.fase_nombre || 'la fase seleccionada'} entrenado exitosamente`)
+      toast.success(`Modelo de ${selectedModel?.fase_nombre || 'la fase seleccionada'} entrenado exitosamente`)
       setShowTrainModal(false)
       // Reload available models
       await loadAvailableModels()
     } catch (error) {
       console.error('Error al entrenar modelo:', error)
-      alert('Error al entrenar el modelo')
+      toast.error('Error al entrenar el modelo', {
+        description: error instanceof Error ? error.message : 'Error desconocido'
+      })
     } finally {
       setTrainingModel(false)
     }

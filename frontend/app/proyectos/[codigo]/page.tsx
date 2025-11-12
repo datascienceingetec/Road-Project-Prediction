@@ -10,6 +10,7 @@ import { InteractiveProjectMap, GeometryUploadModal } from "@/components/geometr
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
 import { EditCostosModal } from "@/components/edit-costos-modal"
 import { Upload } from "lucide-react"
+import { toast } from "sonner"
 
 export default function ProjectDetailPage() {
   const params = useParams()
@@ -56,10 +57,27 @@ export default function ProjectDetailPage() {
   }
 
   const handleDeleteUnit = (unidad: UnidadFuncional) => {
-    if (confirm("¿Estás seguro de eliminar esta unidad funcional?")) {
-      api.deleteUnidadFuncional(unidad.id)
-      loadData()
-    }
+    toast("¿Está seguro de eliminar esta unidad funcional?", {
+      description: "Esta acción no se puede deshacer",
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          try {
+            await api.deleteUnidadFuncional(unidad.id)
+            toast.success("Unidad funcional eliminada exitosamente")
+            loadData()
+          } catch (error) {
+            toast.error("Error al eliminar la unidad funcional", {
+              description: error instanceof Error ? error.message : "Error desconocido"
+            })
+          }
+        },
+      },
+      cancel: {
+        label: "Cancelar",
+        onClick: () => {},
+      },
+    })
   }
 
   const handleSaveUnit = () => {

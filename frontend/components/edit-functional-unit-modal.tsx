@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { type UnidadFuncional, type EnumOption, type FunctionalUnitFormData, api } from "@/lib/api"
 import { Upload, MapPin } from "lucide-react"
+import { toast } from "sonner"
 
 interface EditFunctionalUnitModalProps {
   unidad: UnidadFuncional | FunctionalUnitFormData | null
@@ -77,7 +78,7 @@ export function EditFunctionalUnitModal({
       setSelectedFile(null)
       return true
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : 'No se pudo cargar la geometría'}`)
+      toast.error(`Error: ${error instanceof Error ? error.message : 'No se pudo cargar la geometría'}`)
       return false
     } finally {
       setUploadingGeometry(false)
@@ -85,16 +86,26 @@ export function EditFunctionalUnitModal({
   }
 
   const deleteGeometry = async (ufId: number) => {
-    if (!confirm('¿Estás seguro de eliminar la geometría de esta unidad funcional?')) return
-
-    try {
-      await api.deleteUFGeometry(ufId)
-      setHasGeometry(false)
-      alert('Geometría eliminada exitosamente')
-      onDeleteGeometry?.()
-    } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : 'No se pudo eliminar la geometría'}`)
-    }
+    toast("¿Estás seguro de eliminar la geometría de esta unidad funcional?", {
+      description: "Esta acción no se puede deshacer",
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          try {
+            await api.deleteUFGeometry(ufId)
+            setHasGeometry(false)
+            toast.success('Geometría eliminada exitosamente')
+            onDeleteGeometry?.()
+          } catch (error) {
+            toast.error(`Error: ${error instanceof Error ? error.message : 'No se pudo eliminar la geometría'}`)
+          }
+        },
+      },
+      cancel: {
+        label: "Cancelar",
+        onClick: () => {},
+      },
+    })
   }
 
   useEffect(() => {

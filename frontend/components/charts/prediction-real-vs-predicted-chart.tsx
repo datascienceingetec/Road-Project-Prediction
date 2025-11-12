@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { api } from "@/lib/api"
+import { getAlcanceColor } from "@/lib/chart-colors"
+import { toast } from "sonner"
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false })
 
@@ -53,7 +55,11 @@ export function PredictionRealVsPredictedChart({
         setData(result)
       } catch (err) {
         console.error(err)
-        setError("Error al cargar el gráfico de valor real vs predicho")
+        const errorMsg = "Error al cargar el gráfico de valor real vs predicho"
+        setError(errorMsg)
+        toast.error(errorMsg, {
+          description: err instanceof Error ? err.message : "Error desconocido"
+        })
       } finally {
         setLoading(false)
       }
@@ -63,8 +69,6 @@ export function PredictionRealVsPredictedChart({
       loadData()
     }
   }, [itemTipoId, faseId, alcance])
-
-  const colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
   const chartData = useMemo(() => {
     if (!data || !data.points) return null
@@ -81,6 +85,8 @@ export function PredictionRealVsPredictedChart({
 
     const traces = categories.map((category) => {
       const filtered = points.filter((point) => (point.alcance || "Sin especificar") === category)
+      const color = getAlcanceColor(category)
+      
       const customdata = filtered.map((point) => [
         category,
         point.codigo || "N/A",
@@ -99,6 +105,7 @@ export function PredictionRealVsPredictedChart({
         marker: {
           size: 12,
           opacity: 0.8,
+          color: color,
           line: { color: "white", width: 1 },
         },
         customdata,
@@ -195,7 +202,6 @@ export function PredictionRealVsPredictedChart({
         margin: { l: 80, r: 40, t: 80, b: 80 },
         plot_bgcolor: "white",
         paper_bgcolor: "white",
-        colorway: colors,
         }}
         config={{
         responsive: true,

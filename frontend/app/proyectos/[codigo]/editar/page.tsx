@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { api, type Proyecto } from "@/lib/api"
 import ProjectForm, { type ProjectFormData } from "@/components/project-form"
+import { toast } from "sonner"
 
 export default function EditarProyectoPage() {
   const params = useParams()
@@ -25,7 +26,9 @@ export default function EditarProyectoPage() {
       setProyecto(data)
     } catch (error) {
       console.error("Error loading project:", error)
-      alert("Error al cargar el proyecto")
+      toast.error("Error al cargar el proyecto", {
+        description: error instanceof Error ? error.message : "Error desconocido"
+      })
     }
     setLoading(false)
   }
@@ -33,11 +36,13 @@ export default function EditarProyectoPage() {
   const handleSubmit = async (data: ProjectFormData) => {
     try {
       await api.updateProyecto(codigo, data as any)
-      alert("Proyecto actualizado exitosamente")
+      toast.success("Proyecto actualizado exitosamente")
       router.push(`/proyectos/${codigo}`)
     } catch (error) {
       console.error("Error updating project:", error)
-      alert("Error al actualizar el proyecto")
+      toast.error("Error al actualizar el proyecto", {
+        description: error instanceof Error ? error.message : "Error desconocido"
+      })
       throw error
     }
   }

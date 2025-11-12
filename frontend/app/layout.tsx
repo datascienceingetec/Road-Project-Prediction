@@ -5,6 +5,7 @@ import "./globals.css"
 import { SettingsProvider } from "@/contexts/settings-context"
 import { AppLayout } from "@/layouts"
 import { GoogleMapsProvider } from "@/contexts/map-context"
+import { Toaster } from "sonner"
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -32,6 +33,12 @@ export default function RootLayout({
         <GoogleMapsProvider>
           <SettingsProvider>
             <AppLayout>{children}</AppLayout>
+            <Toaster 
+              position="top-right" 
+              richColors 
+              closeButton
+              duration={4000}
+            />
           </SettingsProvider>
         </GoogleMapsProvider>
       </body>

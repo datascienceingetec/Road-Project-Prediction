@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/utils"
 import { type FaseItemRequerido, type CostoItem, api } from "@/lib/api"
+import { toast } from "sonner"
 
 interface EditCostosModalProps {
   isOpen: boolean
@@ -63,10 +64,14 @@ export function EditCostosModal({
       }))
 
       await api.createOrUpdateCostos(codigoProyecto, costosArray)
+      toast.success("Costos guardados exitosamente")
       onSave()
       onClose()
     } catch (error) {
       console.error("Error al guardar costos:", error)
+      toast.error("Error al guardar los costos", {
+        description: error instanceof Error ? error.message : "Error desconocido"
+      })
     } finally {
       setLoading(false)
     }

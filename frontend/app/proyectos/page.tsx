@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { api, type Proyecto, type Fase } from "@/lib/api"
 import { ProjectsTable } from "@/components/projects-table"
+import { toast } from "sonner"
 
 export default function ProyectosPage() {
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
@@ -26,10 +27,27 @@ export default function ProyectosPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm("¿Está seguro de eliminar este proyecto?")) {
-      await api.deleteProyecto(id)
-      loadData()
-    }
+    toast("¿Está seguro de eliminar este proyecto?", {
+      description: "Esta acción no se puede deshacer",
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          try {
+            await api.deleteProyecto(id)
+            toast.success("Proyecto eliminado exitosamente")
+            loadData()
+          } catch (error) {
+            toast.error("Error al eliminar el proyecto", {
+              description: error instanceof Error ? error.message : "Error desconocido"
+            })
+          }
+        },
+      },
+      cancel: {
+        label: "Cancelar",
+        onClick: () => {},
+      },
+    })
   }
 
   if (loading) {

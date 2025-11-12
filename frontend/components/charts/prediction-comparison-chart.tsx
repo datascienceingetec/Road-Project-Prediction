@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { api } from "@/lib/api"
+import { getAlcanceColor } from "@/lib/chart-colors"
+import { toast } from "sonner"
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false })
 
@@ -36,10 +38,19 @@ export function PredictionComparisonChart({
     setError(null)
     try {
       const result = await api.getItemComparison(itemTipoId, faseId, presentYear)
-      if (result) setData(result)
-      else setError("No se pudieron cargar los datos")
+      if (result) {
+        setData(result)
+      } else {
+        const errorMsg = "No se pudieron cargar los datos del gráfico"
+        setError(errorMsg)
+        toast.error(errorMsg)
+      }
     } catch (err) {
-      setError("Error al cargar los datos del gráfico")
+      const errorMsg = "Error al cargar los datos del gráfico"
+      setError(errorMsg)
+      toast.error(errorMsg, {
+        description: err instanceof Error ? err.message : "Error desconocido"
+      })
       console.error(err)
     } finally {
       setLoading(false)
@@ -75,15 +86,15 @@ export function PredictionComparisonChart({
     return acc
   }, {})
 
-  const colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
-
   // Usar el predictor específico en lugar de siempre longitud
   const predictorName = metadata.predictor_name || "Longitud (Km)"
   const isLengthPredictor = predictorName.includes("Longitud")
 
-  // Crear una traza por alcance usando el predictor correcto
+  // Crear una traza por alcance usando colores consistentes
   const scatterData = Object.keys(groupedByAlcance).map((alcance) => {
     const group = groupedByAlcance[alcance]
+    const color = getAlcanceColor(alcance)
+    
     return {
       x: group.map((p: any) => p.predictor_value || p.longitud_km),
       y: group.map((p: any) => p.costo_millones),
@@ -106,6 +117,7 @@ export function PredictionComparisonChart({
       marker: {
         size: 12,
         opacity: 0.8,
+        color: color,
         line: { color: "DarkSlateGrey", width: 1 },
       },
     }
@@ -195,7 +207,6 @@ export function PredictionComparisonChart({
           margin: { l: 80, r: 50, t: 80, b: 80 },
           plot_bgcolor: "white",
           paper_bgcolor: "white",
-          colorway: colors,
         }}
         config={{
           responsive: true,
