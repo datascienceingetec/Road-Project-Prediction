@@ -8,17 +8,16 @@ from sklearn.pipeline import Pipeline
 
 from app.utils.ml_utils import remove_outliers, calculate_metrics, get_bridges_structures_tunnels
 
-def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predictors: list[str],
-                                    exclude_codes: list[str] = None, use_log_transform: bool = False) -> dict:
+def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predictors: list[str], use_log_transform: bool = False) -> dict:
     """
     Train linear regression model using Leave-One-Out cross-validation.
     """
     df_clean = df_vp[df_vp[target_name] > 0]
     
-    df_filtered, df_clean = get_bridges_structures_tunnels(df_clean, target_name, exclude_codes)
+    df_grouped = get_bridges_structures_tunnels(df_clean, target_name)
     
-    X = df_clean[predictors].values
-    y = df_clean[target_name].values
+    X = df_grouped[predictors].values
+    y = df_grouped[target_name].values
     
     # Ensure X is 2D
     if X.ndim == 1:
