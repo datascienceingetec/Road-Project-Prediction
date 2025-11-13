@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { api } from "@/lib/api"
-import type { Fase, EnumOption, PredictionRequest, PredictionResponse, UnidadFuncional, FunctionalUnitFormData, MetricRow, AvailableModel } from "@/lib/api/types"
+import type { Fase, PredictionResponse, FunctionalUnitFormData, MetricRow, AvailableModel } from "@/lib/api/types"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
 import { PredictionResultsTable, type ItemCosto } from "@/components/prediction/prediction-results-table"
@@ -54,12 +54,6 @@ export default function PrediccionPage() {
     try {
       const response = await api.getAvailableModels()
       setAvailableModels(response.models)
-      
-      // Set default train fase to first available model
-      const firstAvailable = response.models.find((m: AvailableModel) => m.available)
-      if (firstAvailable) {
-        setSelectedTrainFaseId(firstAvailable.fase)
-      }
     } catch (error) {
       console.error('Error loading available models:', error)
     } finally {
@@ -119,7 +113,7 @@ export default function PrediccionPage() {
     const selectedPhaseModel = availableModels.find(m => m.fase_id === formData.fase_id)
     if (!selectedPhaseModel || !selectedPhaseModel.available) {
       const faseName = fases.find(f => f.id === formData.fase_id)?.nombre || 'seleccionada'
-      toast.error(`No hay modelo entrenado disponible para ${faseName}. Por favor, entrena un modelo primero usando el botón "Reentrenar Modelo".`)
+      toast.error(`No hay modelo entrenado disponible para ${faseName}. Por favor, entrena un modelo primero usando el botón "Entrenar Modelo".`)
       return
     }
 
@@ -183,7 +177,6 @@ export default function PrediccionPage() {
       toast.warning('Por favor selecciona una fase para entrenar')
       return
     }
-    
     setTrainingModel(true)
     try {
       const result = await api.trainModel(selectedTrainFaseId)
@@ -499,7 +492,7 @@ export default function PrediccionPage() {
                             <PredictionComparisonChart
                               itemNombre={selectedItem.item}
                               itemTipoId={selectedItem.item_tipo_id}
-                              faseId={formData.fase_id}
+                              faseId={prediction.fase_id}
                               predictedValue={selectedItem.causacion_estimada}
                               predictedLength={prediction.resultados[activeTab].longitud_km}
                             />
@@ -507,7 +500,7 @@ export default function PrediccionPage() {
                               <PredictionRealVsPredictedChart
                                 itemNombre={selectedItem.item}
                                 itemTipoId={selectedItem.item_tipo_id}
-                                faseId={formData.fase_id}
+                                faseId={prediction.fase_id}
                                 alcance={prediction.resultados[activeTab].alcance}
                               />
                             }
