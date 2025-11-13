@@ -90,8 +90,9 @@ export function EditCostosModal({
     }, 0)
   }
   
-  const totalCostos = Object.values(costos).reduce((sum, valor) => sum + valor, 0) + 
-    parentItems.reduce((sum, item) => sum + calculateParentValue(item), 0)
+  const totalCostos = faseItems
+    .filter(item => !item.has_children)
+    .reduce((sum, item) => sum + (costos[item.item_tipo_id] || 0), 0)
 
   if (!isOpen) return null
 

@@ -19,7 +19,7 @@ export interface Proyecto {
   lng_inicio: number | null
   lat_fin: number | null
   lng_fin: number | null
-  costo?: number
+  costo_total: number
   status?: string
   created_at: string
 }

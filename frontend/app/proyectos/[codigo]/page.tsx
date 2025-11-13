@@ -191,7 +191,7 @@ export default function ProjectDetailPage() {
         <div className="flex flex-col gap-2 rounded-lg p-4 border border-[#dee2e6] bg-white">
           <p className="text-gray-500 text-sm font-medium leading-normal">Costo Total</p>
           <p className="text-[#111418] tracking-light text-xl font-bold leading-tight">
-            {formatCurrency(faseItems.reduce((sum, item) => sum + (item.valor_calculado || 0), 0))}
+            {formatCurrency(proyecto.costo_total)}
           </p>
         </div>
       </section>

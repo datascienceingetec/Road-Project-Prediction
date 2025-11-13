@@ -83,13 +83,13 @@ class Proyecto(db.Model):
             'lng_fin': self.lng_fin,
             'fase_id': self.fase_id,
             'fase': self.fase.to_dict() if self.fase else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'costo_total': sum(c.valor for c in self.costos)
         }
         
         if include_relations:
             data['unidades_funcionales'] = [uf.to_dict() for uf in self.unidades_funcionales]
             data['costos'] = [c.to_dict() for c in self.costos]
-            data['costo_total'] = sum(c.valor for c in self.costos)
         
         return data
 
