@@ -5,11 +5,13 @@ import Link from "next/link"
 import { api, type Proyecto, type Fase } from "@/lib/api"
 import { ProjectsTable } from "@/components/projects-table"
 import { toast } from "sonner"
+import { TrainingModal } from "@/components/prediction/training-modal"
 
 export default function ProyectosPage() {
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
   const [fases, setFases] = useState<Fase[]>([])
   const [loading, setLoading] = useState(true)
+  const [showTrainModal, setShowTrainModal] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -74,12 +76,21 @@ export default function ProyectosPage() {
               Administre, visualice y prediga costos de proyectos viales.
             </p>
           </div>
-          <Link href="/proyectos/nuevo">
-            <button className="flex items-center gap-2 rounded-lg bg-primary px-6 h-12 text-sm font-bold text-white hover:bg-primary/90 transition-colors">
-              <span className="material-symbols-outlined">add</span>
-              Nuevo Proyecto
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTrainModal(true)}
+              className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-sm">model_training</span>
+              Entrenar Modelo
             </button>
-          </Link>
+            <Link href="/proyectos/nuevo">
+              <button className="flex items-center gap-2 rounded-lg bg-primary px-6 h-12 text-sm font-bold text-white hover:bg-primary/90 transition-colors">
+                <span className="material-symbols-outlined">add</span>
+                Nuevo Proyecto
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Tabla con búsqueda, filtros y paginación */}
@@ -92,6 +103,10 @@ export default function ProyectosPage() {
           showPagination={true}
           itemsPerPage={10}
           onDelete={handleDelete}
+        />
+        <TrainingModal
+          isOpen={showTrainModal}
+          onClose={() => setShowTrainModal(false)}
         />
       </div>
     </main>

@@ -525,10 +525,13 @@ def get_item_real_vs_predicted():
 
         print(f"Found item column: {item_column}")
         print(f"Available models: {list(target_models.keys())}")
-
         # Buscar modelo correspondiente al ítem
         target_key = None
-        normalized_item_name = normalize_key(fase_item_req.descripcion)
+        # TODO: Remove this when the models are updated
+        if fase_item_req.descripcion == '3.1 - GEOLOGÍA':
+            normalized_item_name = normalize_key('3 - GEOLOGÍA')
+        else:
+            normalized_item_name = normalize_key(fase_item_req.descripcion)
         for key in target_models.keys():
             if normalize_key(key) == normalized_item_name:
                 target_key = key

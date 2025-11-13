@@ -382,6 +382,8 @@ class LegacyModelAdapter(ModelAdapterInterface):
                 alcance=kwargs['alcance'],
                 models=models
             )
+            # TODO: Remove this when the models are updated
+            predictions['3.1 - GEOLOGÍA'] = predictions['3 - GEOLOGÍA']
         elif fase == 'II':
             raise NotImplementedError("Fase II prediction not yet implemented")
         else:
