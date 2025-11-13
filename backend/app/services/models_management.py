@@ -106,13 +106,24 @@ class ModelsManagement:
         target_geo = "3 - GEOLOGÍA"
         results[target_geo] = train_geotecnia_model(df_geo, predictors_geo, target_geo)
         
-        predictors_suelos = ['PUENTES VEHICULARES M2']
+        # predictors_suelos = ['PUENTES VEHICULARES M2']
+        # target_suelos = '4 - SUELOS'
+        # results[target_suelos] = train_brindges_structures_model(self.df_vp, target_suelos, predictors_suelos, exclude_codes=['0654801'], use_log_transform=True)
+
+        # predictors_suelos = ['PUENTES VEHICULARES M2']
+        # target_suelos = '4 - SUELOS'
+        # results[target_suelos] = train_brindges_structures_model(self.df_vp, target_suelos, predictors_suelos, exclude_codes=['0654801'], use_log_transform=True)
+        predictors_suelos = ['PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2']
         target_suelos = '4 - SUELOS'
-        results[target_suelos] = train_brindges_structures_model(self.df_vp, target_suelos, predictors_suelos, exclude_codes=['0654801'], use_log_transform=True)
-        
+        df_clean = self.df_vp[(self.df_vp[target_suelos] > 0) & (((self.df_vp['PUENTES VEHICULARES UND'] > 0) &
+                                                                  (self.df_vp['PUENTES VEHICULARES M2'] > 0)) | (self.df_vp['PUENTES PEATONALES UND'] > 0))]
+        df_grouped = ml_utils.get_bridges_structures_tunnels(df_clean, target_suelos)
+        X, y, y_pred, model, metrics = ml_utils.train_multiple_models(df_grouped, predictors_suelos, target_suelos, log_transform='both')
+        results[target_suelos] = {'X': X, 'y': y, 'y_predicted': y_pred, 'model': model, 'metrics': metrics, 'log_transform': 'both'}
+    
         predictors_estructuras = ['PUENTES VEHICULARES UND']
         target_estructuras = '8 - ESTRUCTURAS'
-        results[target_estructuras] = train_brindges_structures_model(self.df_vp, target_estructuras, predictors_estructuras, exclude_codes=['0654801'], use_log_transform=False)
+        results[target_estructuras] = train_brindges_structures_model(self.df_vp, target_estructuras, predictors_estructuras, use_log_transform=False)
         
         predictors_tuneles = ['4 - SUELOS', 'TUNELES KM']
         target_tuneles = '9 - TÚNELES'
@@ -162,12 +173,8 @@ class ModelsManagement:
                     if log_transform in ['input', 'both']:
                         input_value = np.log1p(input_value)
                     
-                    # Make prediction
+                    # Make prediction - TransformedTargetRegressor handles inverse transform automatically
                     prediction = model.predict(np.array([[input_value]]))[0]
-                    
-                    # Apply inverse log transformation to output if needed
-                    if log_transform in ['output', 'both']:
-                        prediction = np.expm1(prediction)
                     
                     predictions[target] = prediction
                 else:
@@ -221,9 +228,13 @@ class ModelsManagement:
                 predictions['3 - GEOLOGÍA'] = None
         
         if '4 - SUELOS' in models:
-            if puentes_vehiculares_und > 0 and puentes_vehiculares_m2 > 0 :
+            if (puentes_vehiculares_und > 0 and puentes_vehiculares_m2 > 0) or puentes_peatonales_und > 0:
                 model_suelos = models['4 - SUELOS']['model']
-                predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
+                # Transform inputs (log_transform='both' means inputs need log transform)
+                puentes_veh_und_log = np.log1p(puentes_vehiculares_und)
+                puentes_veh_m2_log = np.log1p(puentes_vehiculares_m2)
+                # Predict - TransformedTargetRegressor automatically applies inverse transform to output
+                predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_veh_und_log, puentes_veh_m2_log]]))[0]
             else:   
                 predictions['4 - SUELOS'] = None    
         
@@ -237,10 +248,11 @@ class ModelsManagement:
         if '9 - TÚNELES' in models:
             if tuneles_km > 0 and predictions.get('4 - SUELOS') is not None:
                 model_tuneles = models['9 - TÚNELES']['model']
+                # Transform inputs (log_transform='both' means inputs need log transform)
                 suelos_log = np.log1p(predictions['4 - SUELOS'])
                 tuneles_km_log = np.log1p(tuneles_km)
-                prediction_log = model_tuneles.predict(np.array([[suelos_log, tuneles_km_log]]))[0]
-                predictions['9 - TÚNELES'] = np.expm1(prediction_log)
+                # Predict - TransformedTargetRegressor automatically applies inverse transform to output
+                predictions['9 - TÚNELES'] = model_tuneles.predict(np.array([[suelos_log, tuneles_km_log]]))[0]
             else:
                 predictions['9 - TÚNELES'] = None
         

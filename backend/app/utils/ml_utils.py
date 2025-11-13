@@ -14,6 +14,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.compose import TransformedTargetRegressor
 from sklearn.model_selection import LeaveOneOut, GridSearchCV
 from sklearn.metrics import r2_score
 import warnings
@@ -234,12 +235,10 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
     if log_transform in ['input', 'both']:
         X = np.log1p(X)
     
-    if log_transform in ['output', 'both']:
-        y_train = np.log1p(y)
-    else:
-        y_train = y
-    
     warnings.filterwarnings('ignore', category=UserWarning)
+    
+    # Determine if we need to wrap models with TransformedTargetRegressor
+    use_target_transform = log_transform in ['output', 'both']
     
     model_configs = {
         'Bayesian Ridge': {
@@ -293,34 +292,46 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
             ('model', config['model'])
         ])
         
-        if config['params']:
+        # Wrap with TransformedTargetRegressor if output transformation is needed
+        if use_target_transform:
+            model_to_train = TransformedTargetRegressor(
+                regressor=pipeline,
+                func=np.log1p,
+                inverse_func=np.expm1
+            )
+            # Adjust param grid keys to include 'regressor__' prefix
+            adjusted_params = {f'regressor__{k}': v for k, v in config['params'].items()}
+        else:
+            model_to_train = pipeline
+            adjusted_params = config['params']
+        
+        if adjusted_params:
             grid_search = GridSearchCV(
-                pipeline, 
-                config['params'], 
+                model_to_train, 
+                adjusted_params, 
                 cv=min(3, len(y)),
                 scoring='neg_mean_squared_error',
                 n_jobs=-1
             )
-            grid_search.fit(X, y_train)
-            best_pipeline = grid_search.best_estimator_
+            grid_search.fit(X, y)
+            best_model = grid_search.best_estimator_
         else:
-            best_pipeline = pipeline
+            best_model = model_to_train
         
-        y_pred_loo = np.zeros(len(y_train))
+        y_pred_loo = np.zeros(len(y))
         
         for train_idx, test_idx in loo.split(X):
             X_train, X_test = X[train_idx], X[test_idx]
-            y_tr, y_te = y_train[train_idx], y_train[test_idx]
-            best_pipeline.fit(X_train, y_tr)
-            y_pred_loo[test_idx] = best_pipeline.predict(X_test)
+            y_tr, y_te = y[train_idx], y[test_idx]
+            best_model.fit(X_train, y_tr)
+            # predict() now automatically applies inverse_func if TransformedTargetRegressor is used
+            y_pred_loo[test_idx] = best_model.predict(X_test)
         
-        if log_transform in ['output', 'both']:
-            y_pred_original = np.expm1(y_pred_loo)
-        else:
-            y_pred_original = y_pred_loo
+        # No need for manual inverse transform - TransformedTargetRegressor handles it!
+        y_pred_original = y_pred_loo
         
         # Store model and predictions
-        all_models[name] = best_pipeline
+        all_models[name] = best_model
         all_predictions[name] = y_pred_original
         
         metrics = calculate_metrics(y, y_pred_original, model_name=name)
@@ -485,33 +496,14 @@ def create_scatter_plot_with_regression(df: pd.DataFrame, predictor_name: str, t
     return fig
 
 
-def get_bridges_structures_tunnels(df_vp, target_name, exclude_codes=None, contamination=0.1):
-    """
-    Get and clean bridges, structures, and tunnels data for a specific target variable.
-    Groups data by project code and filters for projects with relevant infrastructure.
-    
-    Parameters:
-    -----------
-    df_vp : pd.DataFrame
-        Input dataframe with project data
-    target_name : str
-        Name of the target column to predict
-    exclude_codes : list, optional
-        List of project codes to exclude from analysis
-    contamination : float
-        Expected proportion of outliers for outlier detection (default: 0.1)
-    
-    Returns:
-    --------
-    tuple[pd.DataFrame, pd.DataFrame]
-        - df_filtered: Filtered dataframe before outlier removal
-        - df_clean: Cleaned dataframe after outlier removal
-    """
+def get_bridges_structures_tunnels(df_vp, target_name):
+
     # Select relevant columns
     df = df_vp.loc[:, 'CÓDIGO':'ALCANCE'].join(df_vp.loc[:, [target_name]])
     
     # Group by project code
     bridges_structures_tunnels_cols = [
+        'LONGITUD KM',
         'PUENTES VEHICULARES UND', 
         'PUENTES VEHICULARES M2', 
         'PUENTES PEATONALES UND',
@@ -536,14 +528,7 @@ def get_bridges_structures_tunnels(df_vp, target_name, exclude_codes=None, conta
         (df_grouped[target_name] > 0)
     ]
     
-    # Exclude specific codes if provided
-    if exclude_codes:
-        df_filtered = df_filtered[~df_filtered['CÓDIGO'].isin(exclude_codes)]
-    
-    # Remove outliers
-    df_clean = remove_outliers(df_filtered, target_name, contamination=contamination)
-    
-    return df_filtered, df_clean
+    return df_filtered
 
 
 def predicted_plot(y: np.array, y_predicted: np.array, df_item_cleaned: pd.DataFrame, 
