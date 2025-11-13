@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum, select, func
+from sqlalchemy import Column, Integer, String, Float, Text, Boolean, ForeignKey, DateTime, Enum as SQLEnum, select, func, text
 from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.ext.hybrid import hybrid_property
 from app.enums import AlcanceEnum, ZonaEnum, TipoTerrenoEnum, StatusEnum
@@ -67,6 +67,33 @@ class Proyecto(db.Model):
             UnidadFuncional.proyecto_id == self.id
         ).scalar() or 0
     
+    def _calculate_costo_total(self):
+        """Calculate total cost excluding parent items to avoid double counting"""
+        # Use raw SQL to avoid circular import issues
+        parent_item_tipo_ids_query = """
+            SELECT DISTINCT fir_parent.item_tipo_id 
+            FROM fase_item_requerido fir_parent
+            WHERE fir_parent.fase_id = :fase_id 
+            AND EXISTS (
+                SELECT 1 FROM fase_item_requerido fir_child 
+                WHERE fir_child.parent_id = fir_parent.id
+            )
+        """
+        
+        result = db.session.execute(
+            text(parent_item_tipo_ids_query), 
+            {'fase_id': self.fase_id}
+        )
+        parent_item_tipo_ids = {row[0] for row in result}
+        
+        # Sum only costs from non-parent items
+        total = 0
+        for costo in self.costos:
+            if costo.item_tipo_id not in parent_item_tipo_ids:
+                total += costo.valor
+        
+        return total
+    
     def to_dict(self, include_relations=False):
         data = {
             'id': self.id,
@@ -84,7 +111,7 @@ class Proyecto(db.Model):
             'fase_id': self.fase_id,
             'fase': self.fase.to_dict() if self.fase else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'costo_total': sum(c.valor for c in self.costos)
+            'costo_total': self._calculate_costo_total()
         }
         
         if include_relations:

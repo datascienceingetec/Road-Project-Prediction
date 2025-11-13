@@ -30,16 +30,16 @@ export function EditCostosModal({
       faseItems.forEach((item) => {
         if (item.has_children) return
         
-        costosMap[item.item_tipo_id] = item.valor_calculado || 0
+        costosMap[item.id] = item.valor_calculado || 0
       })
       setCostos(costosMap)
       setHasChanges(false)
     }
   }, [isOpen, faseItems])
 
-  const handleCostoChange = (itemTipoId: number, valor: string) => {
+  const handleCostoChange = (faseItemId: number, valor: string) => {
     const numericValue = parseFloat(valor) || 0
-    setCostos((prev) => ({ ...prev, [itemTipoId]: numericValue }))
+    setCostos((prev) => ({ ...prev, [faseItemId]: numericValue }))
     setHasChanges(true)
   }
 
@@ -47,7 +47,7 @@ export function EditCostosModal({
     const costosMap: Record<number, number> = {}
     faseItems.forEach((item) => {
       if (item.has_children) return
-      costosMap[item.item_tipo_id] = 0
+      costosMap[item.id] = 0
     })
     setCostos(costosMap)
     setHasChanges(true)
@@ -58,10 +58,13 @@ export function EditCostosModal({
     setLoading(true)
 
     try {
-      const costosArray = Object.entries(costos).map(([item_tipo_id, valor]) => ({
-        item_tipo_id: parseInt(item_tipo_id),
-        valor,
-      }))
+      const costosArray = Object.entries(costos).map(([fase_item_id, valor]) => {
+        const faseItem = faseItems.find(item => item.id === parseInt(fase_item_id))
+        return {
+          item_tipo_id: faseItem?.item_tipo_id || 0,
+          valor,
+        }
+      })
 
       await api.createOrUpdateCostos(codigoProyecto, costosArray)
       toast.success("Costos guardados exitosamente")
@@ -86,13 +89,13 @@ export function EditCostosModal({
       if (child.has_children) {
         return sum + calculateParentValue(child)
       }
-      return sum + (costos[child.item_tipo_id] || 0)
+      return sum + (costos[child.id] || 0)
     }, 0)
   }
   
   const totalCostos = faseItems
     .filter(item => !item.has_children)
-    .reduce((sum, item) => sum + (costos[item.item_tipo_id] || 0), 0)
+    .reduce((sum, item) => sum + (costos[item.id] || 0), 0)
 
   if (!isOpen) return null
 
@@ -127,9 +130,9 @@ export function EditCostosModal({
             <div className="space-y-4">
             {/* All items in order - editable and calculated */}
             {faseItems.map((item) => {
-              const itemTipoId = item.item_tipo_id
+              const faseItemId = item.id
               const isParent = item.has_children
-              const valor = isParent ? calculateParentValue(item) : (costos[itemTipoId] || 0)
+              const valor = isParent ? calculateParentValue(item) : (costos[faseItemId] || 0)
 
               if (isParent) {
                 // Parent item - calculated, read-only with blue styling
@@ -180,7 +183,7 @@ export function EditCostosModal({
                             type="number"
                             step="0.01"
                             value={valor}
-                            onChange={(e) => handleCostoChange(itemTipoId, e.target.value)}
+                            onChange={(e) => handleCostoChange(faseItemId, e.target.value)}
                             className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right font-semibold"
                             placeholder="0.00"
                           />
