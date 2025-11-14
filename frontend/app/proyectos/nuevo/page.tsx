@@ -15,6 +15,12 @@ export default function NuevoProyectoPage() {
       router.push(`/proyectos/${newProyecto.codigo}`)
     } catch (error) {
       console.error("Error creating project:", error)
+      if (error instanceof Error && error.message.includes("409")) {
+        toast.error("Error al crear el proyecto", {
+          description: "El código del proyecto ya existe"
+        })
+        return
+      }
       toast.error("Error al crear el proyecto", {
         description: error instanceof Error ? error.message : "Error desconocido"
       })
