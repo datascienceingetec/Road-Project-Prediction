@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/utils"
-import { type FaseItemRequerido, type CostoItem, api } from "@/lib/api"
+import { type CostoItem, api } from "@/lib/api"
 import { toast } from "sonner"
 
 interface EditCostosModalProps {
@@ -10,7 +10,7 @@ interface EditCostosModalProps {
   onClose: () => void
   onSave: () => void
   codigoProyecto: string
-  faseItems: FaseItemRequerido[]
+  faseItems: CostoItem[]
 }
 
 export function EditCostosModal({
@@ -30,7 +30,7 @@ export function EditCostosModal({
       faseItems.forEach((item) => {
         if (item.has_children) return
         
-        costosMap[item.id] = item.valor_calculado || 0
+        costosMap[item.fase_item_requerido_id] = item.valor || 0
       })
       setCostos(costosMap)
       setHasChanges(false)
@@ -47,7 +47,7 @@ export function EditCostosModal({
     const costosMap: Record<number, number> = {}
     faseItems.forEach((item) => {
       if (item.has_children) return
-      costosMap[item.id] = 0
+      costosMap[item.fase_item_requerido_id] = 0
     })
     setCostos(costosMap)
     setHasChanges(true)
@@ -59,7 +59,7 @@ export function EditCostosModal({
 
     try {
       const costosArray = Object.entries(costos).map(([fase_item_id, valor]) => {
-        const faseItem = faseItems.find(item => item.id === parseInt(fase_item_id))
+        const faseItem = faseItems.find(item => item.fase_item_requerido_id === parseInt(fase_item_id))
         return {
           item_tipo_id: faseItem?.item_tipo_id || 0,
           valor,
@@ -83,19 +83,19 @@ export function EditCostosModal({
   const parentItems = faseItems.filter(item => item.has_children)
   const nonParentItems = faseItems.filter(item => !item.has_children)
   
-  const calculateParentValue = (parentItem: FaseItemRequerido): number => {
-    const children = faseItems.filter(item => item.parent_id === parentItem.id)
+  const calculateParentValue = (parentItem: CostoItem): number => {
+    const children = faseItems.filter(item => item.parent_id === parentItem.fase_item_requerido_id)
     return children.reduce((sum, child) => {
       if (child.has_children) {
         return sum + calculateParentValue(child)
       }
-      return sum + (costos[child.id] || 0)
+      return sum + (costos[child.fase_item_requerido_id] || 0)
     }, 0)
   }
   
   const totalCostos = faseItems
     .filter(item => !item.has_children)
-    .reduce((sum, item) => sum + (costos[item.id] || 0), 0)
+    .reduce((sum, item) => sum + (costos[item.fase_item_requerido_id] || 0), 0)
 
   if (!isOpen) return null
 
@@ -130,14 +130,14 @@ export function EditCostosModal({
             <div className="space-y-4">
             {/* All items in order - editable and calculated */}
             {faseItems.map((item) => {
-              const faseItemId = item.id
+              const faseItemId = item.fase_item_requerido_id
               const isParent = item.has_children
               const valor = isParent ? calculateParentValue(item) : (costos[faseItemId] || 0)
 
               if (isParent) {
                 // Parent item - calculated, read-only with blue styling
                 return (
-                  <div key={item.id} className="flex flex-col gap-2 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                  <div key={item.fase_item_requerido_id} className="flex flex-col gap-2 p-4 border border-blue-200 bg-blue-50 rounded-lg">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <label className="block text-sm font-semibold text-blue-900 mb-1">
@@ -164,7 +164,7 @@ export function EditCostosModal({
               } else {
                 // Regular item - editable
                 return (
-                  <div key={item.id} className="flex flex-col gap-2 p-4 border border-gray-200 rounded-lg hover:border-primary/50 transition-colors">
+                  <div key={item.fase_item_requerido_id} className="flex flex-col gap-2 p-4 border border-gray-200 rounded-lg hover:border-primary/50 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <label className="block text-sm font-semibold text-gray-900 mb-1">
@@ -183,6 +183,7 @@ export function EditCostosModal({
                             type="number"
                             step="0.01"
                             value={valor}
+                            min={0}
                             onChange={(e) => handleCostoChange(faseItemId, e.target.value)}
                             className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right font-semibold"
                             placeholder="0.00"

@@ -4,6 +4,7 @@ import {
   UnidadFuncional,
   ItemTipo,
   FaseItemRequerido,
+  CostoItem,
   EnumOption,
   EnumsCatalog,
   PredictionRequest,
@@ -83,7 +84,7 @@ export const api = {
   },
 
   // ---------- Costos (Items) ----------
-  getCostos(codigo: string): Promise<FaseItemRequerido[]> {
+  getCostos(codigo: string): Promise<CostoItem[]> {
     return fetchAPI(`/proyectos/${codigo}/costos`)
   },
 

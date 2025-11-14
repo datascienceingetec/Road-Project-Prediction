@@ -46,14 +46,6 @@ export interface ItemTipo {
   descripcion: string | null
 }
 
-export interface CostoItem {
-  id: number
-  proyecto_id: number
-  item_tipo_id: number
-  valor: number
-  item_tipo: ItemTipo | null
-}
-
 export interface FaseItemRequerido {
   id: number
   fase_id: number
@@ -66,6 +58,18 @@ export interface FaseItemRequerido {
   has_children?: boolean
   valor_calculado?: number
   children?: FaseItemRequerido[]
+}
+
+export interface CostoItem {
+  fase_item_requerido_id: number
+  item_tipo_id: number
+  descripcion: string | null
+  obligatorio: boolean
+  has_children: boolean
+  parent_id: number | null
+  item_tipo: ItemTipo | null
+  costo_id: number | null
+  valor: number
 }
 
 export interface EnumOption {

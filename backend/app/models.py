@@ -68,28 +68,41 @@ class Proyecto(db.Model):
         ).scalar() or 0
     
     def _calculate_costo_total(self):
-        """Calculate total cost excluding parent items to avoid double counting"""
-        # Use raw SQL to avoid circular import issues
-        parent_item_tipo_ids_query = """
-            SELECT DISTINCT fir_parent.item_tipo_id 
-            FROM fase_item_requerido fir_parent
-            WHERE fir_parent.fase_id = :fase_id 
-            AND EXISTS (
-                SELECT 1 FROM fase_item_requerido fir_child 
-                WHERE fir_child.parent_id = fir_parent.id
-            )
+        """Calculate total cost considering only items from the project's phase.
+        Excludes parent items to avoid double counting."""
+        # Use raw SQL to get:
+        # 1. All item_tipo_ids from the project's phase
+        # 2. Parent item_tipo_ids (items that have children)
+        query = """
+            SELECT DISTINCT 
+                fir.item_tipo_id,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM fase_item_requerido fir_child 
+                    WHERE fir_child.parent_id = fir.id
+                ) THEN 1 ELSE 0 END as is_parent
+            FROM fase_item_requerido fir
+            WHERE fir.fase_id = :fase_id
         """
         
-        result = db.session.execute(
-            text(parent_item_tipo_ids_query), 
-            {'fase_id': self.fase_id}
-        )
-        parent_item_tipo_ids = {row[0] for row in result}
+        result = db.session.execute(text(query), {'fase_id': self.fase_id})
         
-        # Sum only costs from non-parent items
+        # Build set of parent item_tipo_ids and set of valid item_tipo_ids for this phase
+        parent_item_tipo_ids = set()
+        valid_item_tipo_ids = set()
+        
+        for row in result:
+            item_tipo_id, is_parent = row
+            valid_item_tipo_ids.add(item_tipo_id)
+            if is_parent:
+                parent_item_tipo_ids.add(item_tipo_id)
+        
+        # Sum only costs from:
+        # 1. Items that belong to this phase's required items
+        # 2. Items that are NOT parent items
         total = 0
         for costo in self.costos:
-            if costo.item_tipo_id not in parent_item_tipo_ids:
+            if (costo.item_tipo_id in valid_item_tipo_ids and 
+                costo.item_tipo_id not in parent_item_tipo_ids):
                 total += costo.valor
         
         return total

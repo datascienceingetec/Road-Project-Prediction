@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
-import { api, type Proyecto, type UnidadFuncional, type FaseItemRequerido } from "@/lib/api"
+import { api, type Proyecto, type UnidadFuncional, type CostoItem } from "@/lib/api"
 import { FunctionalUnitCard } from "@/components/functional-unit-card"
 import { InteractiveProjectMap, GeometryUploadModal } from "@/components/geometry"
 import { EditFunctionalUnitModal } from "@/components/edit-functional-unit-modal"
@@ -17,7 +17,7 @@ export default function ProjectDetailPage() {
   const codigo = params.codigo as string
   const [proyecto, setProyecto] = useState<Proyecto | null>(null)
   const [unidades, setUnidades] = useState<UnidadFuncional[]>([])
-  const [faseItems, setFaseItems] = useState<FaseItemRequerido[]>([])
+  const [faseItems, setFaseItems] = useState<CostoItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"unidades" | "costos">("unidades")
   const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null)
@@ -289,11 +289,11 @@ export default function ProjectDetailPage() {
                   {faseItems.length > 0 ? (
                     faseItems.map((item) => {
                       const isParent = item.has_children || false
-                      const valor = item.valor_calculado || 0
+                      const valor = item.valor || 0
                       
                       return (
                         <div 
-                          key={item.id} 
+                          key={item.fase_item_requerido_id} 
                           className="flex justify-between items-center py-2 border-b border-gray-100"
                         >
                           <span className={`text-sm font-medium ${isParent ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}>
