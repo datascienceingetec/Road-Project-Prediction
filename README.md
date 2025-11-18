@@ -219,7 +219,7 @@ scripts.bat both        # Windows
 | **Proyectos**            | `/api/v1/proyectos`                               | CRUD de proyectos             |
 | **Unidades Funcionales** | `/api/v1/proyectos/<codigo>/unidades-funcionales` | CRUD de unidades por proyecto |
 | **Costos por proyecto**  | `/api/v1/proyectos/<codigo>/costos`               | CRUD de items de costo        |
-| **Predicción**           | `/api/predict`                                    | Cálculo de costo estimado     |
+| **Predicción**           | `/api/v1/predict`                                 | Cálculo de costo estimado     |
 
 ---
 
@@ -229,7 +229,7 @@ scripts.bat both        # Windows
 
 ```bash
 scripts.bat backend     # Ejecuta Flask
-scripts.bat frontend    # Ejecuta React (cuando exista)
+scripts.bat frontend    # Ejecuta React
 scripts.bat both        # Levanta ambos en paralelo
 ```
 
@@ -267,7 +267,7 @@ make dev                # Ejecuta ambos (backend + frontend)
 * [x] Estructura RESTful jerárquica
 * [x] Inicialización de React frontend
 * [x] CRUD completo desde UI
-* [ ] Integración del modelo predictivo real
+* [x] Integración del modelo predictivo real
 * [ ] Autenticación de usuarios
 * [ ] Despliegue contenedorizado (Docker)
 

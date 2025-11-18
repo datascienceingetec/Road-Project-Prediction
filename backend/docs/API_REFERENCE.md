@@ -67,7 +67,7 @@
 
 ## **E. Costos por Proyecto**
 
-| Método   | Rúa | Descripción |
+| Método   | Ruta | Descripción |
 | -------- | --- | ----------- |
 | `GET`    | `/api/v1/proyectos/<codigo>/costos` | Obtiene todos los costos de un proyecto |
 | `POST`   | `/api/v1/proyectos/<codigo>/costos` | Crea o actualiza costos de un proyecto |
@@ -78,22 +78,39 @@
 
 ## **F. Predicción**
 
-| Método | Ruta                      | Descripción                              |
-| ------ | ------------------------- | ---------------------------------------- |
-| `POST` | `/api/v1/predict`         | Predice el costo de una UF               |
-| `GET`  | `/api/v1/predict/example` | Devuelve un ejemplo del payload esperado |
+| Método | Ruta                                | Descripción                                              |
+| ------ | ----------------------------------- | -------------------------------------------------------- |
+| `POST` | `/api/v1/predict`                   | Predice el costo de una UF                               |
+| `GET`  | `/api/v1/predict/example`           | Devuelve un ejemplo del payload esperado                 |
+| `GET`  | `/api/v1/predict/models/available`  | Lista los modelos de predicción entrenados disponibles   |
+| `POST` | `/api/v1/predict/train`             | Entrena los modelos de predicción para una fase concreta |
 
 ---
 
 ## **G. Gráficos**
 
-| Método | Ruta                                       | Descripción                                                    |
-| ------ | ------------------------------------------ | -------------------------------------------------------------- |
-| `GET`  | `/api/v1/charts/valor-presente-causacion`  | Datos para gráfico de dispersión: longitud vs costo VP         |
-| `GET`  | `/api/v1/charts/causacion-por-km`          | Estadísticas de causación promedio por km (heatmap)            |
-| `GET`  | `/api/v1/charts/health`                    | Health check del servicio de charts                            |
+| Método | Ruta                                       | Descripción                                                                              |
+| ------ | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/charts/valor-presente-causacion` | Datos para gráfico de dispersión: longitud vs costo VP                                   |
+| `GET`  | `/api/v1/charts/causacion-por-km`          | Estadísticas de causación promedio por km (heatmap)                                      |
+| `GET`  | `/api/v1/charts/item-comparison`           | Comparación histórica de un ítem usando predictores adaptativos según el tipo de ítem    |
+| `GET`  | `/api/v1/charts/item-real-vs-predicted`   | Comparativa de valor real vs valor predicho para un ítem específico                      |
+| `GET`  | `/api/v1/charts/health`                    | Health check del servicio de charts                                                      |
 
 **Query Parameters para gráficos:**
 - `fase_id` (opcional): ID de la fase para filtrar proyectos
 - `alcance` (opcional): Filtra por tipo de alcance
 - `present_year` (opcional): Año para cálculo de valor presente (default: 2025)
+- `item_tipo_id` (requerido en endpoints de ítems): ID del tipo de ítem a analizar
+
+---
+
+## **H. Enums**
+
+| Método | Ruta                             | Descripción                                         |
+| ------ | -------------------------------- | --------------------------------------------------- |
+| `GET`  | `/api/v1/enums/`                 | Devuelve todos los enums disponibles                |
+| `GET`  | `/api/v1/enums/alcance`          | Opciones del enum de Alcance                        |
+| `GET`  | `/api/v1/enums/zona`             | Opciones del enum de Zona                           |
+| `GET`  | `/api/v1/enums/tipo-terreno`     | Opciones del enum de Tipo de Terreno                |
+| `GET`  | `/api/v1/enums/status`           | Opciones del enum de Status (estado general/estatus) |

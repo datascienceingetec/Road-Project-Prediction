@@ -36,19 +36,32 @@ pnpm dev      # Iniciar servidor de desarrollo
 
 ```
 frontend/
-├── public/             # Archivos estáticos
-├── src/
-│   ├── app/            # Rutas de Next.js 13+
-│   ├── components/      # Componentes reutilizables
-│   │   ├── ui/         # Componentes de UI
-│   │   └── layout/     # Componentes de diseño
-│   ├── lib/            # Utilidades y configuraciones
-│   │   ├── api.ts      # Cliente API
-│   │   └── utils.ts    # Funciones de utilidad
-│   └── styles/         # Estilos globales
-├── .eslintrc.json      # Configuración de ESLint
-├── next.config.js      # Configuración de Next.js
-└── package.json        # Dependencias y scripts
+├── app/                    # Directorio de Rutas (App Router de Next.js)
+│   ├── api/                # api routes de Next.js
+│   ├── configuracion/      # Ruta para la página de Configuración
+│   ├── dashboard/          # Ruta para el Dashboard
+│   ├── prediccion/         # Ruta para la página de Predicción
+│   ├── proyectos/          # Ruta para la gestión de Proyectos
+│   ├── global.css          # Estilos globales
+│   └── layout.tsx          # Layout principal de la aplicación
+├── components/             # Componentes Reutilizables y Específicos
+│   ├── charts/             # Componentes relacionados con Gráficos
+│   ├── geometry/           # Componentes relacionados con Geometría (¿Mapas/Diagramas?)
+│   ├── prediction/         # Componentes específicos para la Predicción
+│   ├── ui/                 # Componentes de Interfaz de Usuario (UI - Shadcn) atómicos
+├── contexts/               # Proveedores de Contexto de React
+├── hooks/                  # Custom Hooks de React
+├── layouts/                # Posibles layouts específicos de página (si no son el layout.tsx principal)
+├── lib/                    # Utilidades, funciones de ayuda, cliente API
+│   ├── api/                # Cliente API REST para el backend
+│   ├── utils/              # Utilidades, funciones de ayuda, cliente API
+├── navigation/             # Archivos relacionados con la lógica de navegación/rutas
+├── public/                 # Archivos estáticos (imágenes, fuentes, etc.)
+├── styles/                 # Estilos adicionales o configuraciones de Tailwind/CSS
+├── .env                    # Variables de entorno
+└── package.json            # Dependencias y scripts
+└── pnpm-lock.yaml          # Archivo de dependencias de pnpm
+└── README.md               # Este archivo
 ```
 
 ## 🛠️ Tecnologías Principales

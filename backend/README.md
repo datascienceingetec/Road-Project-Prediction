@@ -36,32 +36,33 @@ python run.py
 ```
 backend/
 ├── app/
-│   ├── __init__.py          # Inicialización de Flask
-│   ├── config.py            # Configuración
-│   ├── models.py            # Modelos ORM (SQLAlchemy)
-│   ├── routes/              # Endpoints de la API
-│   │   ├── proyectos.py
-│   │   ├── fases.py
-│   │   └── items.py
-│   └── services/            # Lógica de negocio
-│       ├── eda.py
-│       └── present_value.py
-├── migrations/              # Migraciones de Alembic
-│   ├── versions/            # Scripts de migración
-│   └── env.py              # Configuración de Alembic
-├── notebooks/               # Jupyter notebooks para análisis
+│   ├── __init__.py             # Inicialización de Flask
+│   ├── config.py               # Configuración
+│   ├── models.py               # Modelos ORM (SQLAlchemy)
+│   ├── enums.py                # Enumerados de tipos
+│   ├── routes/                 # Endpoints de la API
+│   │   ├── v1/                 # API v1
+│   │   │   ├── proyectos.py
+│   │   │   ├── fases.py
+│   │   │   └── items.py
+│   │   services/               # Lógica de negocio
+│   │   adapters/               # Adaptadores de servicios
+│   └── utils/                  # Utilidades
+├── migrations/                 # Migraciones de Alembic
+│   ├── versions/               # Scripts de migración
+│   └── env.py                  # Configuración de Alembic
+├── notebooks/                  # Jupyter notebooks para análisis
 │   ├── eda.ipynb
 │   ├── machine_learning.ipynb
 │   └── test.ipynb
-├── docs/                    # Documentación
-│   ├── ALEMBIC_MIGRATION_GUIDE.md  # Guía de migraciones
-│   └── NOTEBOOKS_MIGRATION_GUIDE.md # Migración de notebooks
-├── data/                    # Datos fuente
-├── instance/                # Base de datos SQLite
-├── alembic.ini             # Configuración de Alembic
-├── manage_migrations.py    # Gestión de migraciones
-├── seed_from_old_schema.py # Poblar BD desde esquema antiguo
-├── requirements.txt        # Dependencias
+├── tests/                      # Pruebas unitarias
+├── docs/                       # Documentación
+├── data/                       # Datos fuente
+├── instance/                   # Base de datos SQLite
+├── alembic.ini                 # Configuración de Alembic
+├── manage_migrations.py        # Gestión de migraciones
+├── seed_from_old_schema.py     # Poblar BD desde esquema antiguo
+├── requirements.txt            # Dependencias
 └── run.py                  # Punto de entrada
 ```
 

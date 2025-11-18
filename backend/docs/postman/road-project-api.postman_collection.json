@@ -500,6 +500,18 @@
               "path": ["api", "{{api_version}}", "enums", "tipo-terreno"]
             }
           }
+        },
+        {
+          "name": "Obtener opciones de Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/enums/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "enums", "status"]
+            }
+          }
         }
       ]
     },
@@ -512,28 +524,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/charts/valor-presente-causacion?fase_id={{id_fase}}&present_year=2025",
+              "raw": "{{base_url}}/api/{{api_version}}/charts/valor-presente-causacion?fase_id={{id_fase}}&present_year=2025&alcance=",
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "charts", "valor-presente-causacion"],
               "query": [
                 { "key": "fase_id", "value": "{{id_fase}}", "description": "ID de la fase (opcional)" },
-                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" }
+                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" },
+                { "key": "alcance", "value": "", "description": "Tipo de alcance (opcional)" }
               ]
             },
             "description": "Obtiene datos para gráfico de dispersión que muestra la relación entre longitud del proyecto y valor presente de causación de personal"
-          }
-        },
-        {
-          "name": "Valor Presente - Sin Filtros",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/charts/valor-presente-causacion",
-              "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "charts", "valor-presente-causacion"]
-            },
-            "description": "Obtiene datos de todos los proyectos sin filtrar por fase"
           }
         },
         {
@@ -542,28 +542,76 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/charts/causacion-por-km?fase_id={{id_fase}}&present_year=2025",
+              "raw": "{{base_url}}/api/{{api_version}}/charts/causacion-por-km?fase_id={{id_fase}}&present_year=2025&alcance=",
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "charts", "causacion-por-km"],
               "query": [
                 { "key": "fase_id", "value": "{{id_fase}}", "description": "ID de la fase (opcional)" },
-                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" }
+                { "key": "present_year", "value": "2025", "description": "Año presente para cálculo VP (opcional, default: 2025)" },
+                { "key": "alcance", "value": "", "description": "Tipo de alcance (opcional)" }
               ]
             },
             "description": "Obtiene estadísticas de causación promedio por kilómetro, agrupadas por categoría (item) y tipo de alcance. Incluye datos para heatmap."
           }
         },
         {
-          "name": "Causación por Km - Sin Filtros",
+          "name": "Comparación de Ítem",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/{{api_version}}/charts/causacion-por-km",
+              "raw": "{{base_url}}/api/{{api_version}}/charts/item-comparison?item_tipo_id={{id_item}}&fase_id={{id_fase}}&present_year=2025",
               "host": ["{{base_url}}"],
-              "path": ["api", "{{api_version}}", "charts", "causacion-por-km"]
+              "path": ["api", "{{api_version}}", "charts", "item-comparison"],
+              "query": [
+                {
+                  "key": "item_tipo_id",
+                  "value": "{{id_item}}",
+                  "description": "ID del tipo de ítem a comparar (requerido)"
+                },
+                {
+                  "key": "fase_id",
+                  "value": "{{id_fase}}",
+                  "description": "ID de la fase (opcional)"
+                },
+                {
+                  "key": "present_year",
+                  "value": "2025",
+                  "description": "Año presente para cálculo VP (opcional, default: 2025)"
+                }
+              ]
             },
-            "description": "Obtiene datos de causación por km de todos los proyectos sin filtrar por fase"
+            "description": "Obtiene datos de comparación histórica de un ítem específico usando predictores adaptativos."
+          }
+        },
+        {
+          "name": "Ítem: Real vs Predicho",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/charts/item-real-vs-predicted?item_tipo_id={{id_item}}&fase_id={{id_fase}}&alcance=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "charts", "item-real-vs-predicted"],
+              "query": [
+                {
+                  "key": "item_tipo_id",
+                  "value": "{{id_item}}",
+                  "description": "ID del tipo de ítem (requerido)"
+                },
+                {
+                  "key": "fase_id",
+                  "value": "{{id_fase}}",
+                  "description": "ID de la fase (requerido)"
+                },
+                {
+                  "key": "alcance",
+                  "value": "",
+                  "description": "Tipo de alcance (opcional)"
+                }
+              ]
+            },
+            "description": "Devuelve la comparativa de valor real vs valor predicho para un ítem específico."
           }
         },
         {
@@ -643,7 +691,52 @@
 						}
 					},
 					"response": []
-				}
+				},
+        {
+          "name": "Listar modelos disponibles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/predict/models/available",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "predict", "models", "available"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Entrenar modelos de predicción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fase_id\": {{id_fase}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/predict/train",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "predict", "train"]
+            },
+            "description": "Entrena los modelos de predicción para una fase y guarda los artefactos en disco."
+          },
+          "response": []
+        }
 			]
 		}
   ],
@@ -654,6 +747,7 @@
     { "key": "id_proyecto", "value": "1", "type": "string" },
     { "key": "id_unidad", "value": "1", "type": "string" },
     { "key": "id_fase", "value": "1", "type": "string" },
-    { "key": "id_item", "value": "1", "type": "string" }
+    { "key": "id_item", "value": "1", "type": "string" },
+    { "key": "alcance", "value": "Segunda calzada", "type": "string" }
   ]
 }
