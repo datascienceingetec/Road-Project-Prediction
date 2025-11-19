@@ -247,6 +247,9 @@ class PredictionService:
             # Get ALL metrics for this item (can have multiple alcances)
             metrics = None
             if matched_pred_name:
+                # TODO: Remove this when the models are updated
+                if matched_pred_name == "3.1 - GEOLOGÍA":
+                    matched_pred_name = "3 - GEOLOGÍA"
                 metrics_list = training_summary.get(matched_pred_name)
                 if metrics_list:
                     print(f"✓ Found {len(metrics_list)} metric(s) for {matched_pred_name}")
