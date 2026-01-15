@@ -11,7 +11,7 @@ GOTO :help
     echo 🚀 Iniciando backend (Flask)...
     cd backend
     call .venv\Scripts\activate
-    flask run
+    flask run --debug
     GOTO :end
 
 :frontend
@@ -22,7 +22,7 @@ GOTO :help
 
 :both
     echo ⚡ Iniciando backend y frontend...
-    start cmd /k "cd backend && call .venv\Scripts\activate && flask run"
+    start cmd /k "cd backend && call .venv\Scripts\activate && flask run --debug"
     start cmd /k "cd frontend && pnpm run dev"
     GOTO :end
 
