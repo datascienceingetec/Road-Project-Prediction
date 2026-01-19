@@ -74,13 +74,13 @@ backend/
 
 El proyecto usa **SQLAlchemy ORM** con el siguiente esquema normalizado:
 
-- **`fases`** - Catálogo de fases (Prefactibilidad, Factibilidad, Diseño Detallado)
-- **`proyectos`** - Proyectos viales
-- **`unidad_funcional`** - Unidades funcionales por proyecto
-- **`item_tipo`** - Catálogo de tipos de items de costo
-- **`fase_item_requerido`** - Relación fase-items con labels
-- **`costo_item`** - Costos por proyecto e item
-- **`anual_increment`** - Incrementos anuales para valor presente
+-   **`fases`** - Catálogo de fases (Prefactibilidad, Factibilidad, Diseño Detallado)
+-   **`proyectos`** - Proyectos viales
+-   **`unidad_funcional`** - Unidades funcionales por proyecto
+-   **`item_tipo`** - Catálogo de tipos de items de costo
+-   **`fase_item_requerido`** - Relación fase-items con labels
+-   **`costo_item`** - Costos por proyecto e item
+-   **`anual_increment`** - Incrementos anuales para valor presente
 
 ### Migraciones con Alembic
 
@@ -118,22 +118,22 @@ python seed_from_old_schema.py instance/database_backup_XXXXXX.db
 
 ### Proyectos
 
-- `GET /api/proyectos` - Listar todos los proyectos
-- `GET /api/proyectos/<codigo>` - Obtener proyecto por código
-- `POST /api/proyectos` - Crear nuevo proyecto
-- `PUT /api/proyectos/<codigo>` - Actualizar proyecto
-- `DELETE /api/proyectos/<codigo>` - Eliminar proyecto
+-   `GET /api/proyectos` - Listar todos los proyectos
+-   `GET /api/proyectos/<codigo>` - Obtener proyecto por código
+-   `POST /api/proyectos` - Crear nuevo proyecto
+-   `PUT /api/proyectos/<codigo>` - Actualizar proyecto
+-   `DELETE /api/proyectos/<codigo>` - Eliminar proyecto
 
 ### Fases
 
-- `GET /api/fases` - Listar todas las fases
-- `GET /api/fases/<id>` - Obtener fase por ID
-- `GET /api/fases/<id>/items` - Obtener items requeridos por fase
+-   `GET /api/fases` - Listar todas las fases
+-   `GET /api/fases/<id>` - Obtener fase por ID
+-   `GET /api/fases/<id>/items` - Obtener items requeridos por fase
 
 ### Items
 
-- `GET /api/items` - Listar todos los tipos de items
-- `GET /api/items/<id>` - Obtener item por ID
+-   `GET /api/items` - Listar todos los tipos de items
+-   `GET /api/items/<id>` - Obtener item por ID
 
 ---
 
@@ -141,10 +141,10 @@ python seed_from_old_schema.py instance/database_backup_XXXXXX.db
 
 El proyecto incluye notebooks Jupyter para análisis y machine learning:
 
-- **`eda.ipynb`** - Análisis exploratorio de datos
-- **`machine_learning.ipynb`** - Modelos predictivos
-- **`test.ipynb`** - Pruebas y visualizaciones
-- **`reset_reload_db.ipynb`** - Reset y recarga de base de datos
+-   **`eda.ipynb`** - Análisis exploratorio de datos
+-   **`machine_learning.ipynb`** - Modelos predictivos
+-   **`test.ipynb`** - Pruebas y visualizaciones
+-   **`reset_reload_db.ipynb`** - Reset y recarga de base de datos
 
 ⚠️ **Nota**: Los notebooks requieren actualización para trabajar con el nuevo esquema ORM.  
 📖 **Guía de migración**: [docs/NOTEBOOKS_MIGRATION_GUIDE.md](docs/NOTEBOOKS_MIGRATION_GUIDE.md)
@@ -168,8 +168,15 @@ python manage_migrations.py upgrade
 
 ## 🧪 Testing
 
+Instalar dependencias de testing (pytest) en el entorno de desarrollo:
+
 ```bash
-# Ejecutar tests (cuando estén disponibles)
+pip install pytest pytest-mock
+```
+
+Ejecutar tests:
+
+```bash
 pytest
 
 # Con cobertura
@@ -180,13 +187,13 @@ pytest --cov=app
 
 ## 📦 Dependencias Principales
 
-- **Flask 3.1.2** - Framework web
-- **Flask-SQLAlchemy 3.1.1** - ORM
-- **SQLAlchemy 2.0.23** - Motor de base de datos
-- **Alembic 1.13.1** - Migraciones de BD
-- **scikit-learn 1.7.2** - Machine learning
-- **pandas 2.3.2** - Análisis de datos
-- **plotly 6.3.1** - Visualizaciones
+-   **Flask 3.1.2** - Framework web
+-   **Flask-SQLAlchemy 3.1.1** - ORM
+-   **SQLAlchemy 2.0.23** - Motor de base de datos
+-   **Alembic 1.13.1** - Migraciones de BD
+-   **scikit-learn 1.7.2** - Machine learning
+-   **pandas 2.3.2** - Análisis de datos
+-   **plotly 6.3.1** - Visualizaciones
 
 ---
 
@@ -194,12 +201,7 @@ pytest --cov=app
 
 ### Variables de Entorno
 
-Crear archivo `.env` en la raíz del proyecto:
-
-```env
-SECRET_KEY=tu-secret-key-aqui
-SQLALCHEMY_ECHO=False
-```
+Crear archivo `.env` en la raíz del proyecto desde el archivo `.env.example`.
 
 ### Configuración de Base de Datos
 
@@ -215,8 +217,8 @@ SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@localhost/dbname"
 
 ## 📚 Documentación
 
-- **[Guía de Migraciones](docs/ALEMBIC_MIGRATION_GUIDE.md)** - Uso completo de Alembic
-- **[Migración de Notebooks](docs/NOTEBOOKS_MIGRATION_GUIDE.md)** - Adaptar notebooks al nuevo esquema
+-   **[Guía de Migraciones](docs/ALEMBIC_MIGRATION_GUIDE.md)** - Uso completo de Alembic
+-   **[Migración de Notebooks](docs/NOTEBOOKS_MIGRATION_GUIDE.md)** - Adaptar notebooks al nuevo esquema
 
 ---
 
