@@ -66,13 +66,13 @@ frontend/
 
 ## 🛠️ Tecnologías Principales
 
-- **Next.js 13+** - Framework de React para aplicaciones web
-- **TypeScript** - Tipado estático para JavaScript
-- **Tailwind CSS** - Framework CSS utilitario
-- **shadcn/ui** - Componentes UI accesibles y personalizables
-- **React Hook Form** - Manejo de formularios
-- **Zod** - Validación de esquemas
-- **Axios** - Cliente HTTP
+-   **Next.js 13+** - Framework de React para aplicaciones web
+-   **TypeScript** - Tipado estático para JavaScript
+-   **Tailwind CSS** - Framework CSS utilitario
+-   **shadcn/ui** - Componentes UI accesibles y personalizables
+-   **React Hook Form** - Manejo de formularios
+-   **Zod** - Validación de esquemas
+-   **Axios** - Cliente HTTP
 
 ## 🌐 Variables de Entorno
 
@@ -80,7 +80,10 @@ Crea un archivo `.env.local` en la raíz del frontend con las siguientes variabl
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=tu-google-client-id
 ```
+
+Asegúrate de registrar en Google Cloud el redirect URI: `https://<tu-dominio>/auth/callback` y que `GOOGLE_CLIENT_ID` sea el mismo que usa Gestiona.
 
 ## 🧪 Testing
 
