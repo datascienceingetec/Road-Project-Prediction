@@ -7,6 +7,7 @@ from app.services.auth_service import User
 
 
 def require_authenticated_user(f):
+    # TODO: Adaptar e implementar en middleware o endpoints
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.cookies.get("roadcost_session")
