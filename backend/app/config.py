@@ -1,5 +1,10 @@
 import os
+
+from app.adapters.storage import GCSStorage, LocalStorage
 from app.utils.config import required_env
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -26,18 +31,33 @@ class Config:
     ALLOWED_DEPARTMENTS = required_env("ALLOWED_DEPARTMENTS").split(",")
     ADMIN_USERS = os.getenv("ADMIN_USERS", "").split(",")
 
-    # Base de datos
+    # Storage
+    GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+
+    # Base de datos (SQLite) para dev notebooks
     DATABASE = os.path.join(INSTANCE_DIR, "database.db")
     OLD_DATABASE = os.path.join(INSTANCE_DIR, "old_database.db")
 
-    SQLALCHEMY_DATABASE_URI = (
-        f"sqlite:///{os.path.join(INSTANCE_DIR, 'database.db')}"
-    )
+    SQLALCHEMY_DATABASE_URI = required_env("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
+
+    # Configuración del pool de conexiones (optimizado para Neon PostgreSQL)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "5")),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "10")),
+        "pool_pre_ping": True,  # Verifica conexiones antes de usarlas
+        "pool_recycle": 3600,   # Recicla conexiones cada hora
+    }
 
     BASE_DIR = BASE_DIR
     PROJECT_ROOT = PROJECT_ROOT
     INSTANCE_DIR = INSTANCE_DIR
     DATA_DIR = DATA_DIR
     LOGS_DIR = LOGS_DIR
+
+
+def get_storage():
+    if Config.GCS_BUCKET_NAME:
+        return GCSStorage(bucket_name=Config.GCS_BUCKET_NAME)
+    return LocalStorage()
